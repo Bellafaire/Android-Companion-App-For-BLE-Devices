@@ -4,7 +4,7 @@ This project is a simple Android app which uses BLE to send notification data an
 Also allows for other functionality such as song control with more features to come. 
 This project is intended to work alongside an ESP32 based project, a short example Arduino sketch is included in the repo. 
 
-![](header.png)
+<img src="https://github.com/Bellafaire/Android-Companion-App-For-BLE-Devices/blob/master/Images/appInterface.jpg?raw=true" height="400px" />
 
 ## Installation
 
@@ -26,6 +26,11 @@ Below is a list of commands that can be issued and their functionality.
     sendBLE("/nextSong", false); //hits the media next song button on the android device
     sendBLE("/lastSong", false); //hits the media previous song button on the android device
 ```
+The example sketch provided in the repo will connect to the Android app and print the current notifications present on the notification bar to the serial terminal.
+If everything's configured correctly the output should look like this: 
+
+<img src="https://github.com/Bellafaire/Android-Companion-App-For-BLE-Devices/blob/master/Images/ouputExample.png?raw=true" />
+
 
 ## Release History
 
