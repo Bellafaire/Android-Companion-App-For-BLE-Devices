@@ -9,7 +9,7 @@ This project is intended to work alongside an ESP32 based project, a short examp
 ## Installation
 
 Sources can be compiled in android studio once cloned from this repo. 
-Compile the project to a .apk file and send to android device or upload directly from android studios. 
+There is a compiled .apk file available under the "releases" tab of this repo you can use that to install the app or compile the app yourself from source. 
 Be sure to grant notification permission and check "Device Broadcast Status" setting in spotify for all features to work properly in the app. 
 
 ## Usage example
