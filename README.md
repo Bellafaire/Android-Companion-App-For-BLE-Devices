@@ -30,9 +30,3 @@ The example sketch provided in the repo will connect to the Android app and prin
 If everything's configured correctly the output should look like this: 
 
 <img src="https://github.com/Bellafaire/Android-Companion-App-For-BLE-Devices/blob/master/Images/ouputExample.png?raw=true" />
-
-
-## Release History
-
-* 1.0.0
-    * Initial commit of repo with basic companion app functionality 
