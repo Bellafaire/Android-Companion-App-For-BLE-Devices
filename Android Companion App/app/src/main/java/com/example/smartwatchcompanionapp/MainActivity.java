@@ -24,11 +24,13 @@ package com.example.smartwatchcompanionapp;
  SOFTWARE.
  ******************************************************************************/
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.method.ScrollingMovementMethod;
@@ -37,6 +39,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -67,9 +72,9 @@ public class MainActivity extends Activity {
     public static long dataAcquisitionStart = System.currentTimeMillis();
 
 
-/* onCreate
-    everything that's important on startup happens here
- */
+    /* onCreate
+        everything that's important on startup happens here
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //save a reference of this instance, this allows for static
@@ -90,6 +95,9 @@ public class MainActivity extends Activity {
         toggleBT = (Button) findViewById(R.id.sendButton);
         messages = (TextView) findViewById(R.id.messages);
         messages.append("\n");
+
+        checkPermission(Manifest.permission.READ_CALENDAR);
+        checkPermission(Manifest.permission.ACCESS_FINE_LOCATION);
 
         //init Spotify receiver and register it's actions so it can be accessed
         sReceiver = new SpotifyReceiver();
@@ -113,6 +121,23 @@ public class MainActivity extends Activity {
         //start BLE server as a service
         startService(new Intent(MainActivity.this, BLEServer.class));
     }
+
+
+   public void checkPermission(String permission){
+       if (ContextCompat.checkSelfPermission(MainActivity.this,
+               permission) != PackageManager.PERMISSION_GRANTED){
+           if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
+                   permission)){
+               ActivityCompat.requestPermissions(MainActivity.this,
+                       new String[]{permission}, 1);
+           }else{
+               ActivityCompat.requestPermissions(MainActivity.this,
+                       new String[]{permission}, 1);
+           }
+       }
+
+   }
+
 
     //make sure that the button on the UI reflects the current state of the BLE server
     public static void updateBLEStatus() {
@@ -220,7 +245,7 @@ public class MainActivity extends Activity {
 
     //some data needs time to be acquired, we don't want the external device to be sent incomplete data
     // in these cases
-    public static boolean dataIsReady(){
+    public static boolean dataIsReady() {
         return dataAcquisitionStart + 100 < System.currentTimeMillis();
     }
 
