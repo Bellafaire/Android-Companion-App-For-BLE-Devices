@@ -25,6 +25,7 @@ Below is a list of commands that can be issued and their functionality.
     sendBLE("/pause", false); //hits the media pause button on the android device
     sendBLE("/nextSong", false); //hits the media next song button on the android device
     sendBLE("/lastSong", false); //hits the media previous song button on the android device
+	sendBLE("/calender", true); // returns a string of calender events for the next 24 hours in format "title;description;startDate;startTime;endTime;eventLocation;"
 ```
 The example sketch provided in the repo will connect to the Android app and print the current notifications present on the notification bar to the serial terminal.
 If everything's configured correctly the output should look like this: 
