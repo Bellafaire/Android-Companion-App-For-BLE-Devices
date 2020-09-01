@@ -42,11 +42,16 @@ import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.media.AudioManager;
+import android.net.Uri;
 import android.os.IBinder;
 import android.os.ParcelUuid;
+import android.provider.CalendarContract;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.widget.Toast;
@@ -54,7 +59,13 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 
 import java.nio.charset.StandardCharsets;
+
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.TimeZone;
 import java.util.UUID;
+
 
 import static android.bluetooth.le.AdvertiseSettings.ADVERTISE_MODE_BALANCED;
 import static android.bluetooth.le.AdvertiseSettings.ADVERTISE_TX_POWER_HIGH;
@@ -120,7 +131,7 @@ public class BLEServer extends Service {
         service = new BluetoothGattService(serviceID, BluetoothGattService.SERVICE_TYPE_PRIMARY);
 
         //add characteristics and services, these are where the data will be accessed from
-        characteristic = new BluetoothGattCharacteristic(characteristicID, BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE  , BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE);
+        characteristic = new BluetoothGattCharacteristic(characteristicID, BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE, BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE);
         characteristic.setValue("Test3");
         service.addCharacteristic(characteristic);
         bluetoothGattServer.addService(service);
@@ -146,20 +157,20 @@ public class BLEServer extends Service {
             } else {
                 //if the data is ready then we just go ahead and start splitting it up and sending it piece by piece
                 //to the external device every time it reads our characteristic
-                if(currentIndex <= MainActivity.outData.length()) {
+                if (currentIndex <= MainActivity.outData.length()) {
                     try {
                         //send data in 16 character packets
                         bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, MainActivity.outData.substring(currentIndex, currentIndex + 16).getBytes());
-                        Log.v(TAG, "BT_OUT: " +  MainActivity.outData.substring(currentIndex, currentIndex + 16));
+                        Log.v(TAG, "BT_OUT: " + MainActivity.outData.substring(currentIndex, currentIndex + 16));
                     } catch (IndexOutOfBoundsException e) {
                         //if we don't have 16 characters left to send then send whatever is left
                         bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, MainActivity.outData.substring(currentIndex).getBytes());
-                        Log.v(TAG, "BT_OUT: " +  MainActivity.outData.substring(currentIndex));
+                        Log.v(TAG, "BT_OUT: " + MainActivity.outData.substring(currentIndex));
                     }
-                }else{
+                } else {
                     //otherwise send asterisks to indicate end of the data
                     bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, "********".getBytes());
-                    Log.v(TAG, "BT_OUT: " +  "********");
+                    Log.v(TAG, "BT_OUT: " + "********");
                 }
                 currentIndex += 16;
             }
@@ -191,7 +202,7 @@ public class BLEServer extends Service {
                     MainActivity.reference.setUIText(MainActivity.reference.getApplicationContext(), MainActivity.reference.sReceiver.getSongData());
                 } else {
                     MainActivity.outData = "***";
-                    MainActivity.reference.setUIText(MainActivity.reference.getApplicationContext(),"***");
+                    MainActivity.reference.setUIText(MainActivity.reference.getApplicationContext(), "***");
                 }
                 currentIndex = 0;
                 bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, "1".getBytes());
@@ -218,9 +229,76 @@ public class BLEServer extends Service {
                 //just press the pause song button when this command is received
                 pressMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE);
                 bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, "1".getBytes());
+            } else if (data.equals("/calender")) {
+                //reads the calender events for the next 24 hours formatted as a string and makes the resulting
+                //data available over BLE
+                //data format is "title;description;startDate;startTime;endTime;eventLocation;"
+                Log.d("calender", "Parsing Calender data");
+                currentIndex = 0;
+                String calendarString = getDataFromEventTable();
+                bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, "1".getBytes());
+
+                MainActivity.outData = calendarString + "******";
+                MainActivity.reference.setUIText(MainActivity.reference.getApplicationContext(), calendarString);
             }
         }
     };
+
+
+    //gets the calender information we want in a string format
+    //data format is "title;description;startDate;startTime;endTime;eventLocation;"
+    public String getDataFromEventTable() {
+        String ret = "";
+        Cursor cur = null;
+        ContentResolver cr = getContentResolver();
+
+        //these are the event details we're querying, if you want other
+        //items in the calender available event details can be found here: https://developer.android.com/reference/android/provider/CalendarContract.EventsColumns#DTSTART
+        String[] mProjection =
+                {
+                        "_id",
+                        CalendarContract.Events.TITLE,
+                        CalendarContract.Events.DESCRIPTION,
+                        CalendarContract.Events.EVENT_LOCATION,
+                        CalendarContract.Events.DTSTART,
+                        CalendarContract.Events.DTEND,
+                };
+
+        Uri uri = CalendarContract.Events.CONTENT_URI;
+
+        //Get all events within the next 24 hours
+        String selection = "((" + CalendarContract.Events.DTSTART + " > ? ) AND (" + CalendarContract.Events.DTSTART + "< ?))";
+        String[] selectionArgs = new String[]{System.currentTimeMillis() + "", (System.currentTimeMillis() + 24 * 60 * 60 * 1000) + ""};
+
+        cur = cr.query(uri, mProjection, selection, selectionArgs, null);
+
+
+        //read the resulting query and parse out title, start time, end time, and event location
+        while (cur.moveToNext()) {
+            String title = cur.getString(cur.getColumnIndex(CalendarContract.Events.TITLE));
+            String description = cur.getString(cur.getColumnIndex(CalendarContract.Events.DESCRIPTION));
+            String start = cur.getString(cur.getColumnIndex(CalendarContract.Events.DTSTART));
+            String end = cur.getString(cur.getColumnIndex(CalendarContract.Events.DTEND));
+            String location = cur.getString(cur.getColumnIndex(CalendarContract.Events.EVENT_LOCATION));
+
+            //format date and time
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mma");
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd");
+            String startTime = Instant.ofEpochSecond(Long.parseLong(start) / 1000)
+                    .atZone(ZoneId.of(TimeZone.getDefault().getID()))
+                    .format(formatter);
+            String endTime = Instant.ofEpochSecond(Long.parseLong(end) / 1000)
+                    .atZone(ZoneId.of(TimeZone.getDefault().getID()))
+                    .format(formatter);
+            String startDate = Instant.ofEpochSecond(Long.parseLong(end) / 1000)
+                    .atZone(ZoneId.of(TimeZone.getDefault().getID()))
+                    .format(dateFormatter);
+
+            ret += title + ";" + description + ";" + startDate + ";" + startTime + ";" + endTime + ";" + location + ";\n";
+        }
+        return ret;
+    }
+
 
     //advertise callbacks
     AdvertiseCallback callback = new AdvertiseCallback() {
@@ -228,6 +306,7 @@ public class BLEServer extends Service {
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
             Log.d(TAG, "BLE advertisement added successfully");
         }
+
         @Override
         public void onStartFailure(int errorCode) {
             Log.e(TAG, "Failed to add BLE advertisement, reason: " + errorCode);
@@ -235,7 +314,7 @@ public class BLEServer extends Service {
     };
 
     //just presses a given key on the device, this allows external devices to control the android device
-    public void pressMediaKey(int ke){
+    public void pressMediaKey(int ke) {
         //referenced from https://stackoverflow.com/questions/5129027/android-application-to-pause-resume-the-music-of-another-music-player-app
         AudioManager mAudioManager = (AudioManager) MainActivity.reference.getSystemService(Context.AUDIO_SERVICE);
         KeyEvent event = new KeyEvent(KeyEvent.ACTION_DOWN, ke);
