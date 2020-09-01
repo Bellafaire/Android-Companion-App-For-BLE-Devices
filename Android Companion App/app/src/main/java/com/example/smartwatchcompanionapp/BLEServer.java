@@ -63,6 +63,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -273,6 +274,9 @@ public class BLEServer extends Service {
         cur = cr.query(uri, mProjection, selection, selectionArgs, null);
 
 
+        ArrayList<String> outputs = new ArrayList();
+        ArrayList<Long> times = new ArrayList();
+
         //read the resulting query and parse out title, start time, end time, and event location
         while (cur.moveToNext()) {
             String title = cur.getString(cur.getColumnIndex(CalendarContract.Events.TITLE));
@@ -294,8 +298,26 @@ public class BLEServer extends Service {
                     .atZone(ZoneId.of(TimeZone.getDefault().getID()))
                     .format(dateFormatter);
 
-            ret += title + ";" + description + ";" + startDate + ";" + startTime + ";" + endTime + ";" + location + ";\n";
+            //add to output array, we want to sort these before returning them to the user
+            outputs.add( title + ";" + description + ";" + startDate + ";" + startTime + ";" + endTime + ";" + location + ";\n");
+            times.add(Long.parseLong(start));
         }
+
+        //now sort the output lines their start time
+        while(outputs.size() > 0){
+            long smallest = Long.MAX_VALUE;
+            int smallestIndex = -1;
+            for(int a = 0; a < outputs.size(); a++){
+                if(times.get(a) < smallest){
+                    smallest = times.get(a);
+                    smallestIndex = a;
+                }
+            }
+            ret += outputs.get(smallestIndex);
+            outputs.remove(smallestIndex);
+            times.remove(smallestIndex);
+        }
+
         return ret;
     }
 
