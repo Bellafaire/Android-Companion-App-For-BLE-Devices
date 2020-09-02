@@ -234,13 +234,12 @@ public class BLEServer extends Service {
                 //reads the calender events for the next 24 hours formatted as a string and makes the resulting
                 //data available over BLE
                 //data format is "title;description;startDate;startTime;endTime;eventLocation;"
-                Log.d("calender", "Parsing Calender data");
                 currentIndex = 0;
                 String calendarString = getDataFromEventTable();
-                bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, "1".getBytes());
-
                 MainActivity.outData = calendarString + "******";
+                Log.d("calendar", "Set output to: " + calendarString);
                 MainActivity.reference.setUIText(MainActivity.reference.getApplicationContext(), calendarString);
+                bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, "1".getBytes());
             }
         }
     };
@@ -249,6 +248,7 @@ public class BLEServer extends Service {
     //gets the calender information we want in a string format
     //data format is "title;description;startDate;startTime;endTime;eventLocation;"
     public String getDataFromEventTable() {
+        Log.d("calendar", "Obtaining calendar events");
         String ret = "";
         Cursor cur = null;
         ContentResolver cr = getContentResolver();
@@ -273,51 +273,83 @@ public class BLEServer extends Service {
 
         cur = cr.query(uri, mProjection, selection, selectionArgs, null);
 
+        if (cur.getCount() > 0) {
+            ArrayList<String> outputs = new ArrayList();
+            ArrayList<Long> times = new ArrayList();
 
-        ArrayList<String> outputs = new ArrayList();
-        ArrayList<Long> times = new ArrayList();
+            //read the resulting query and parse out title, start time, end time, and event location
+            while (cur.moveToNext()) {
+                String title = cur.getString(cur.getColumnIndex(CalendarContract.Events.TITLE));
+                String description = cur.getString(cur.getColumnIndex(CalendarContract.Events.DESCRIPTION));
+                String start = cur.getString(cur.getColumnIndex(CalendarContract.Events.DTSTART));
+                String end = cur.getString(cur.getColumnIndex(CalendarContract.Events.DTEND));
+                String location = cur.getString(cur.getColumnIndex(CalendarContract.Events.EVENT_LOCATION));
 
-        //read the resulting query and parse out title, start time, end time, and event location
-        while (cur.moveToNext()) {
-            String title = cur.getString(cur.getColumnIndex(CalendarContract.Events.TITLE));
-            String description = cur.getString(cur.getColumnIndex(CalendarContract.Events.DESCRIPTION));
-            String start = cur.getString(cur.getColumnIndex(CalendarContract.Events.DTSTART));
-            String end = cur.getString(cur.getColumnIndex(CalendarContract.Events.DTEND));
-            String location = cur.getString(cur.getColumnIndex(CalendarContract.Events.EVENT_LOCATION));
+                //format date and time
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mma");
+                DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd");
 
-            //format date and time
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mma");
-            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd");
-            String startTime = Instant.ofEpochSecond(Long.parseLong(start) / 1000)
-                    .atZone(ZoneId.of(TimeZone.getDefault().getID()))
-                    .format(formatter);
-            String endTime = Instant.ofEpochSecond(Long.parseLong(end) / 1000)
-                    .atZone(ZoneId.of(TimeZone.getDefault().getID()))
-                    .format(formatter);
-            String startDate = Instant.ofEpochSecond(Long.parseLong(end) / 1000)
-                    .atZone(ZoneId.of(TimeZone.getDefault().getID()))
-                    .format(dateFormatter);
+                Long startTimeSeconds, endTimeSeconds;
+                String startTime, endTime, startDate;
+                try {
+                    startTimeSeconds = Long.parseLong(start) / 1000;
 
-            //add to output array, we want to sort these before returning them to the user
-            outputs.add( title + ";" + description + ";" + startDate + ";" + startTime + ";" + endTime + ";" + location + ";\n");
-            times.add(Long.parseLong(start));
-        }
+                    startTime = Instant.ofEpochSecond(startTimeSeconds)
+                            .atZone(ZoneId.of(TimeZone.getDefault().getID()))
+                            .format(formatter);
 
-        //now sort the output lines their start time
-        while(outputs.size() > 0){
-            long smallest = Long.MAX_VALUE;
-            int smallestIndex = -1;
-            for(int a = 0; a < outputs.size(); a++){
-                if(times.get(a) < smallest){
-                    smallest = times.get(a);
-                    smallestIndex = a;
+                    startDate = Instant.ofEpochSecond(startTimeSeconds)
+                            .atZone(ZoneId.of(TimeZone.getDefault().getID()))
+                            .format(dateFormatter);
+
+                } catch (NumberFormatException e) {
+
+                    startTimeSeconds = Long.MAX_VALUE;
+                    startTime = "";
+                    startDate = "";
+
+                    Log.d("calendar", "Could not parse start time due to error in event \""+ title +"\": " + e.getMessage());
                 }
-            }
-            ret += outputs.get(smallestIndex);
-            outputs.remove(smallestIndex);
-            times.remove(smallestIndex);
-        }
 
+                try{
+                    endTimeSeconds = Long.parseLong(end) / 1000;
+
+                    endTime = Instant.ofEpochSecond(endTimeSeconds)
+                            .atZone(ZoneId.of(TimeZone.getDefault().getID()))
+                            .format(formatter);
+                }catch(NumberFormatException e){
+                    endTimeSeconds = Long.MAX_VALUE;
+                    endTime = "";
+                    Log.d("calendar", "Could not parse end time due to error in event \""+ title +"\": " + e.getMessage());
+                }
+
+
+                //add to output array, we want to sort these before returning them to the user
+                outputs.add(title + ";" + description + ";" + startDate + ";" + startTime + ";" + endTime + ";" + location + ";\n");
+                Log.d("calendar", "Found Event: " + title + ";" + description + ";" + startDate + ";" + startTime + ";" + endTime + ";" + location + ";\n");
+                times.add(Long.parseLong(start));
+            }
+
+            Log.d("calendar", outputs.size() + " events found");
+
+            //now sort the output lines their start time
+            while (outputs.size() > 0) {
+                long smallest = Long.MAX_VALUE;
+                int smallestIndex = -1;
+                for (int a = 0; a < outputs.size(); a++) {
+                    if (times.get(a) < smallest) {
+                        smallest = times.get(a);
+                        smallestIndex = a;
+                    }
+                }
+                ret += outputs.get(smallestIndex);
+                outputs.remove(smallestIndex);
+                times.remove(smallestIndex);
+            }
+        } else {
+            ret = "No Events";
+            Log.d("calendar", "No Events Found");
+        }
         return ret;
     }
 
