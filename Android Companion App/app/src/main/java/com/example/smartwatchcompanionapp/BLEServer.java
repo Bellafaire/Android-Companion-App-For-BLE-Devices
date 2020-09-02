@@ -43,6 +43,7 @@ import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -60,10 +61,14 @@ import androidx.annotation.Nullable;
 
 import java.nio.charset.StandardCharsets;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -250,109 +255,111 @@ public class BLEServer extends Service {
     public String getDataFromEventTable() {
         Log.d("calendar", "Obtaining calendar events");
         String ret = "";
+
+
+        String[] INSTANCE_PROJECTION = new String[]{
+                CalendarContract.Instances.EVENT_ID,
+                CalendarContract.Instances.BEGIN,
+                CalendarContract.Instances.TITLE,
+                CalendarContract.Instances.DESCRIPTION,
+                CalendarContract.Instances.END,
+                CalendarContract.Instances.DTSTART,
+                CalendarContract.Instances.DTEND,
+                CalendarContract.Instances.EVENT_LOCATION
+        };
+
+        // Specify the date range you want to search for recurring
+        // event instances
+
+
+        //specifying date range here, we want to obtain all the events for the day, for that we use
+        //the gregorian calendar, and set it to our timezone then give it the system time
+        GregorianCalendar time = new GregorianCalendar();
+        time.setTimeZone(TimeZone.getDefault());
+        time.setTimeInMillis(System.currentTimeMillis());
+
+        //now we want to set the start time range to the first second of the day
+        time.clear(GregorianCalendar.MINUTE);
+        time.clear(GregorianCalendar.HOUR_OF_DAY);
+        time.set(GregorianCalendar.MINUTE, 0);
+        time.set(GregorianCalendar.HOUR_OF_DAY, 0);
+        long startMillis = time.getTimeInMillis();  //get the time in milliseconds since epoch
+
+        //set the end time range to the last second of the day
+        time.clear(GregorianCalendar.MINUTE);
+        time.clear(GregorianCalendar.HOUR_OF_DAY);
+        time.set(GregorianCalendar.MINUTE, 59);
+        time.set(GregorianCalendar.HOUR_OF_DAY, 23);
+        long endMillis = time.getTimeInMillis();   //get the time in milliseconds since epoch
+
+        Log.d("calendar", "Looking for events from " + startMillis + " to " + endMillis);
+
+        //create variables we'll need to query the calendar data
         Cursor cur = null;
         ContentResolver cr = getContentResolver();
+        String selection = "";
+        String[] selectionArgs = new String[]{};
 
-        //these are the event details we're querying, if you want other
-        //items in the calender available event details can be found here: https://developer.android.com/reference/android/provider/CalendarContract.EventsColumns#DTSTART
-        String[] mProjection =
-                {
-                        "_id",
-                        CalendarContract.Events.TITLE,
-                        CalendarContract.Events.DESCRIPTION,
-                        CalendarContract.Events.EVENT_LOCATION,
-                        CalendarContract.Events.DTSTART,
-                        CalendarContract.Events.DTEND,
-                };
+        // Construct the query with the desired date range.
+        Uri.Builder builder = CalendarContract.Instances.CONTENT_URI.buildUpon();
+        ContentUris.appendId(builder, startMillis);
+        ContentUris.appendId(builder, endMillis);
 
-        Uri uri = CalendarContract.Events.CONTENT_URI;
+        //query data and sort based on start time in descending order
+        cur = cr.query(builder.build(),
+                INSTANCE_PROJECTION,
+                selection,
+                selectionArgs,
+                CalendarContract.Instances.BEGIN + " DESC");
 
-        //Get all events within the next 24 hours
-        String selection = "((" + CalendarContract.Events.DTSTART + " > ? ) AND (" + CalendarContract.Events.DTSTART + "< ?))";
-        String[] selectionArgs = new String[]{System.currentTimeMillis() + "", (System.currentTimeMillis() + 24 * 60 * 60 * 1000) + ""};
+        Log.d("calendar", "Found " + cur.getCount() + " Instances");
 
-        cur = cr.query(uri, mProjection, selection, selectionArgs, null);
+        if (cur.moveToFirst()) {
+            do {
 
-        if (cur.getCount() > 0) {
-            ArrayList<String> outputs = new ArrayList();
-            ArrayList<Long> times = new ArrayList();
-
-            //read the resulting query and parse out title, start time, end time, and event location
-            while (cur.moveToNext()) {
-                String title = cur.getString(cur.getColumnIndex(CalendarContract.Events.TITLE));
-                String description = cur.getString(cur.getColumnIndex(CalendarContract.Events.DESCRIPTION));
-                String start = cur.getString(cur.getColumnIndex(CalendarContract.Events.DTSTART));
-                String end = cur.getString(cur.getColumnIndex(CalendarContract.Events.DTEND));
-                String location = cur.getString(cur.getColumnIndex(CalendarContract.Events.EVENT_LOCATION));
+                //parse data out of the query that we want
+                String title = cur.getString(cur.getColumnIndex(CalendarContract.Instances.TITLE));
+                String description = cur.getString(cur.getColumnIndex(CalendarContract.Instances.DESCRIPTION));
+                String end = cur.getString(cur.getColumnIndex(CalendarContract.Instances.END));
+                String dtStart = cur.getString(cur.getColumnIndex(CalendarContract.Instances.DTSTART));
+                String location = cur.getString(cur.getColumnIndex(CalendarContract.Instances.EVENT_LOCATION));
 
                 //format date and time
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mma");
-                DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd");
 
-                Long startTimeSeconds, endTimeSeconds;
-                String startTime, endTime, startDate;
+                Long startTimeStringSeconds, endTimeStringSeconds;
+                String startTimeString, endTimeString;
+
+                //convert calendar time from milliseconds since epoch to human readable time
                 try {
-                    startTimeSeconds = Long.parseLong(start) / 1000;
+                    startTimeStringSeconds = Long.parseLong(dtStart) / 1000;
 
-                    startTime = Instant.ofEpochSecond(startTimeSeconds)
+                    startTimeString = Instant.ofEpochSecond(startTimeStringSeconds)
                             .atZone(ZoneId.of(TimeZone.getDefault().getID()))
                             .format(formatter);
-
-                    startDate = Instant.ofEpochSecond(startTimeSeconds)
-                            .atZone(ZoneId.of(TimeZone.getDefault().getID()))
-                            .format(dateFormatter);
-
                 } catch (NumberFormatException e) {
-
-                    startTimeSeconds = Long.MAX_VALUE;
-                    startTime = "";
-                    startDate = "";
-
-                    Log.d("calendar", "Could not parse start time due to error in event \""+ title +"\": " + e.getMessage());
+                    startTimeString = "";
+                    Log.d("calendar", "Could not parse start time due to error in event \"" + title + "\": " + e.getMessage());
                 }
+                try {
+                    endTimeStringSeconds = Long.parseLong(end) / 1000;
 
-                try{
-                    endTimeSeconds = Long.parseLong(end) / 1000;
-
-                    endTime = Instant.ofEpochSecond(endTimeSeconds)
+                    endTimeString = Instant.ofEpochSecond(endTimeStringSeconds)
                             .atZone(ZoneId.of(TimeZone.getDefault().getID()))
                             .format(formatter);
-                }catch(NumberFormatException e){
-                    endTimeSeconds = Long.MAX_VALUE;
-                    endTime = "";
-                    Log.d("calendar", "Could not parse end time due to error in event \""+ title +"\": " + e.getMessage());
+                } catch (NumberFormatException e) {
+                    endTimeString = "";
+                    Log.d("calendar", "Could not parse end time due to error in event \"" + title + "\": " + e.getMessage());
                 }
 
-
-                //add to output array, we want to sort these before returning them to the user
-                outputs.add(title + ";" + description + ";" + startDate + ";" + startTime + ";" + endTime + ";" + location + ";\n");
-                Log.d("calendar", "Found Event: " + title + ";" + description + ";" + startDate + ";" + startTime + ";" + endTime + ";" + location + ";\n");
-                times.add(Long.parseLong(start));
-            }
-
-            Log.d("calendar", outputs.size() + " events found");
-
-            //now sort the output lines their start time
-            while (outputs.size() > 0) {
-                long smallest = Long.MAX_VALUE;
-                int smallestIndex = -1;
-                for (int a = 0; a < outputs.size(); a++) {
-                    if (times.get(a) < smallest) {
-                        smallest = times.get(a);
-                        smallestIndex = a;
-                    }
-                }
-                ret += outputs.get(smallestIndex);
-                outputs.remove(smallestIndex);
-                times.remove(smallestIndex);
-            }
-        } else {
-            ret = "No Events";
-            Log.d("calendar", "No Events Found");
+                //format for sending over BLE
+                ret += title + ";" + description + ";" + /*Start date removed for the time being*/ ";" + startTimeString + ";" + endTimeString + ";" + location + ";\n";
+                Log.d("calendar", "Found Event: " + title + ";" + description + ";" + ";" + startTimeString + ";" + endTimeString + ";" + location + ";\n");
+            } while (cur.moveToNext());
         }
+
         return ret;
     }
-
 
     //advertise callbacks
     AdvertiseCallback callback = new AdvertiseCallback() {
