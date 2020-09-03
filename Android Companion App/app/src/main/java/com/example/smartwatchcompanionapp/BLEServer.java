@@ -310,7 +310,7 @@ public class BLEServer extends Service {
                 INSTANCE_PROJECTION,
                 selection,
                 selectionArgs,
-                CalendarContract.Instances.BEGIN + " DESC");
+                CalendarContract.Instances.BEGIN + " ASC"); //sort in ascending order (way easier to do on the phone end of things than the device)
 
         Log.d("calendar", "Found " + cur.getCount() + " Instances");
 
