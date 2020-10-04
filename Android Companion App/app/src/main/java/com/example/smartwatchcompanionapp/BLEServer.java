@@ -74,6 +74,7 @@ import java.util.UUID;
 
 
 import static android.bluetooth.le.AdvertiseSettings.ADVERTISE_MODE_BALANCED;
+import static android.bluetooth.le.AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY;
 import static android.bluetooth.le.AdvertiseSettings.ADVERTISE_TX_POWER_HIGH;
 
 
@@ -111,8 +112,9 @@ public class BLEServer extends Service {
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
                 .setConnectable(true)
                 .setTxPowerLevel(ADVERTISE_TX_POWER_HIGH)
-                .setAdvertiseMode(ADVERTISE_MODE_BALANCED)
+                .setAdvertiseMode(ADVERTISE_MODE_LOW_LATENCY)
                 .build();
+
 
         AdvertiseData advertiseData = new AdvertiseData.Builder()
                 .setIncludeDeviceName(true)
