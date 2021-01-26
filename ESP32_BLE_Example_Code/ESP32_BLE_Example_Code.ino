@@ -68,7 +68,7 @@ void loop() {
     //    sendBLE("/pause", false); //hits the media pause button on the android device
     //    sendBLE("/nextSong", false); //hits the media next song button on the android device
     //    sendBLE("/lastSong", false); //hits the media previous song button on the android device
-    //    sendBLE("/calender", true); // returns a string of calender events for the next 24 hours in format "title;description;startDate;startTime;endTime;eventLocation;"
+    //    sendBLE("/calendar", true); // returns a string of calender events for the next 24 hours in format "title;description;startDate;startTime;endTime;eventLocation;"
     String notificationData = sendBLE("/notifications", true);
 
     Serial.println(notificationData);

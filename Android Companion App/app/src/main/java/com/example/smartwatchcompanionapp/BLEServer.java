@@ -237,7 +237,7 @@ public class BLEServer extends Service {
                 //just press the pause song button when this command is received
                 pressMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE);
                 bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, "1".getBytes());
-            } else if (data.equals("/calender")) {
+            } else if (data.equals("/calendar")) {
                 //reads the calender events for the next 24 hours formatted as a string and makes the resulting
                 //data available over BLE
                 //data format is "title;description;startDate;startTime;endTime;eventLocation;"
@@ -320,11 +320,11 @@ public class BLEServer extends Service {
             do {
 
                 //parse data out of the query that we want
-                String title = cur.getString(cur.getColumnIndex(CalendarContract.Instances.TITLE));
-                String description = cur.getString(cur.getColumnIndex(CalendarContract.Instances.DESCRIPTION));
-                String end = cur.getString(cur.getColumnIndex(CalendarContract.Instances.END));
-                String dtStart = cur.getString(cur.getColumnIndex(CalendarContract.Instances.DTSTART));
-                String location = cur.getString(cur.getColumnIndex(CalendarContract.Instances.EVENT_LOCATION));
+                String title = cur.getString(cur.getColumnIndex(CalendarContract.Instances.TITLE)).replace("\n", " ");
+                String description = cur.getString(cur.getColumnIndex(CalendarContract.Instances.DESCRIPTION)).replace("\n", " ");
+                String end = cur.getString(cur.getColumnIndex(CalendarContract.Instances.END)).replace("\n", " ");
+                String dtStart = cur.getString(cur.getColumnIndex(CalendarContract.Instances.DTSTART)).replace("\n", " ");
+                String location = cur.getString(cur.getColumnIndex(CalendarContract.Instances.EVENT_LOCATION)).replace("\n", " ");
 
                 //format date and time
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mma");
