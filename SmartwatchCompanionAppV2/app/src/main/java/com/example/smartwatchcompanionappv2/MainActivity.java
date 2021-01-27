@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     public static TextView txtView;
 
     private NotificationReceiver nReceiver;
+    public static SpotifyReceiver sReceiver;
 
 
     @Override
@@ -57,7 +58,13 @@ public class MainActivity extends AppCompatActivity {
         i.putExtra("command", "list");
         sendBroadcast(i);
 
-
+        //init Spotify receiver and register it's actions so it can be accessed
+        sReceiver = new SpotifyReceiver();
+        IntentFilter sfilter = new IntentFilter();
+        sfilter.addAction("com.spotify.music.playbackstatechanged");
+        sfilter.addAction("com.spotify.music.metadatachanged");
+        sfilter.addAction("com.spotify.music.queuechanged");
+        registerReceiver(sReceiver, sfilter);
 
         BLEScanner.startScan(this.getApplicationContext());
         blegatt = new BLEGATT(this.getApplicationContext(), (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE));
@@ -68,7 +75,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 String statusText = BLEGATT.getStatusText()
-                        +"\nNotification Data: \n" + notificationData;
+                        + "\nNotification Data: \n" + notificationData
+                        + "\nSpotify:\n" + sReceiver.getStatusText();
                 reference.txtView.setText(statusText);
             }
         });
@@ -84,20 +92,31 @@ public class MainActivity extends AppCompatActivity {
         blegatt.write(BLEGATT.getDateAndTime());
     }
 
+    //sends intent to obtain notification data and updates the textview
+    //that the user sees along with the output data field. this version of the
+    //function CANNOT be called from a static context
+    public void updateText(View view) {
+        Log.d(TAG, "Updating Notification Text");
+        notificationData = BLEGATT.getDateAndTime()  + "\n***";
+        Intent i = new Intent(NLService.GET_NOTIFICATION_INTENT);
+        i.putExtra("command", "list");
+        sendBroadcast(i);
+    }
+
+
     //receives the data from the NLService and updates fields in this class.
     class NotificationReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.i(TAG, "onRecieve method callback received " + intent.getStringExtra("notification_event"));
+            Log.i(TAG, "onReceive method callback received " + intent.getStringExtra("notification_event"));
             String temp = intent.getStringExtra("notification_event");
             if (!notificationData.contains(temp)) {
                 temp = intent.getStringExtra("notification_event") + "\n" + notificationData;
                 notificationData = temp.replace("\n\n", "\n");
             }
-updateStatusText();
+            updateStatusText();
         }
     }
-
 
 
 }
