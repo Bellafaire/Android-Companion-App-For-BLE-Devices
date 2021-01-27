@@ -18,7 +18,7 @@ public class CalendarReader {
     //gets the calender information we want in a string format
     //data format is "title;description;startDate;startTime;endTime;eventLocation;"
     public static String getDataFromEventTable() {
-        Log.d("calendar", "Obtaining calendar events");
+        Log.v("calendar", "Obtaining calendar events");
         String ret = "";
 
 
@@ -57,7 +57,7 @@ public class CalendarReader {
         time.set(GregorianCalendar.HOUR_OF_DAY, 23);
         long endMillis = time.getTimeInMillis();   //get the time in milliseconds since epoch
 
-        Log.d("calendar", "Looking for events from " + startMillis + " to " + endMillis);
+        Log.v("calendar", "Looking for events from " + startMillis + " to " + endMillis);
 
         //create variables we'll need to query the calendar data
         Cursor cur = null;
@@ -77,7 +77,7 @@ public class CalendarReader {
                 selectionArgs,
                 CalendarContract.Instances.BEGIN + " ASC"); //sort in ascending order (way easier to do on the phone end of things than the device)
 
-        Log.d("calendar", "Found " + cur.getCount() + " Instances");
+        Log.v("calendar", "Found " + cur.getCount() + " Instances");
 
         if (cur.moveToFirst()) {
             do {
@@ -104,7 +104,7 @@ public class CalendarReader {
                             .format(formatter);
                 } catch (NumberFormatException e) {
                     startTimeString = "";
-                    Log.d("calendar", "Could not parse start time due to error in event \"" + title + "\": " + e.getMessage());
+                    Log.v("calendar", "Could not parse start time due to error in event \"" + title + "\": " + e.getMessage());
                 }
                 try {
                     endTimeStringSeconds = Long.parseLong(end) / 1000;
@@ -114,12 +114,12 @@ public class CalendarReader {
                             .format(formatter);
                 } catch (NumberFormatException e) {
                     endTimeString = "";
-                    Log.d("calendar", "Could not parse end time due to error in event \"" + title + "\": " + e.getMessage());
+                    Log.v("calendar", "Could not parse end time due to error in event \"" + title + "\": " + e.getMessage());
                 }
 
                 //format for sending over BLE
                 ret += title + ";" + description + ";" + /*Start date removed for the time being*/ ";" + startTimeString + ";" + endTimeString + ";" + location + ";\n";
-                Log.d("calendar", "Found Event: " + title + ";" + description + ";" + ";" + startTimeString + ";" + endTimeString + ";" + location + ";\n");
+                Log.v("calendar", "Found Event: " + title + ";" + description + ";" + ";" + startTimeString + ";" + endTimeString + ";" + location + ";\n");
             } while (cur.moveToNext());
         }
 

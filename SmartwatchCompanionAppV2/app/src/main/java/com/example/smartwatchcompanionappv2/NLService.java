@@ -51,7 +51,7 @@ public class NLService extends NotificationListenerService {
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
         Log.i(TAG, "**********  onNotificationPosted");
-        Log.i(TAG, "ID :" + sbn.getId() + "t" + sbn.getNotification().tickerText + "t" + sbn.getPackageName());
+//        Log.i(TAG, "ID :" + sbn.getId() + "t" + sbn.getNotification().tickerText + "t" + sbn.getPackageName());
         Intent i = new Intent(NOTIFICATION_ACTION);
         i.putExtra("notification_event", "onNotificationPosted :" + sbn.getPackageName() + "n");
         i.putExtra("notification_event", "");
@@ -62,7 +62,7 @@ public class NLService extends NotificationListenerService {
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
         Log.i(TAG, "********** onNotificationRemoved");
-        Log.i(TAG, "ID :" + sbn.getId() + "t" + sbn.getNotification().tickerText + "t" + sbn.getPackageName());
+//        Log.i(TAG, "ID :" + sbn.getId() + "t" + sbn.getNotification().tickerText + "t" + sbn.getPackageName());
         Intent i = new Intent(NOTIFICATION_ACTION);
         i.putExtra("notification_event", "onNotificationRemoved :" + sbn.getPackageName() + "n");
         i.putExtra("notification_event", "");

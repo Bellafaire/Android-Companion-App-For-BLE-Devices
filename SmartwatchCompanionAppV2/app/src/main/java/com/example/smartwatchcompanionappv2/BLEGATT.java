@@ -47,7 +47,7 @@ public class BLEGATT {
 
         ret += "Last Connected: " + lastConnected + "\n";
 
-        Log.d(TAG, ret);
+        Log.v(TAG, ret);
 
         return ret;
     }

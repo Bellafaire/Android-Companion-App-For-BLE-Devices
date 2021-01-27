@@ -28,26 +28,29 @@ public class BLEScanner {
     public static void startScan(Context con) {
 
         Intent intent = new Intent(con, BLEReceiver.class); // explicite intent
-        intent.setAction(BLEReceiver.ACTION_SCANNER_FOUND_DEVICE);
+        intent.setAction("com.smartwatchCompanion.bleReciever.ACTION_SCANNER_FOUND_DEVICE");
 //        intent.putExtra("some.extra", value); // optional
-
         PendingIntent pendingIntent = PendingIntent.getBroadcast(con, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         BluetoothLeScannerCompat scanner = BluetoothLeScannerCompat.getScanner();
         ScanSettings settings = new ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
-                .setReportDelay(100)
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+                .setReportDelay(1000)
                 .build();
         List<ScanFilter> filters = new ArrayList<>();
         filters.add(new ScanFilter.Builder().setServiceUuid(ParcelUuid.fromString(MainActivity.serviceUUID)).build());
-        scanner.startScan(filters, settings, scb);
-
+        scanner.startScan(filters, settings, con, pendingIntent);
     }
 
 
-    public static void stopScan() {
+    public static void stopScan(Context con) {
+        // To stop scanning use the same or an equal PendingIntent (check PendingIntent documentation)
+        Intent intent = new Intent(con, BLEReceiver.class);
+        intent.setAction("com.example.ACTION_FOUND");
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(con, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+
         BluetoothLeScannerCompat scanner = BluetoothLeScannerCompat.getScanner();
-        scanner.stopScan(scb);
+        scanner.stopScan(con, pendingIntent);
     }
 
     static ScanCallback scb = new ScanCallback() {
