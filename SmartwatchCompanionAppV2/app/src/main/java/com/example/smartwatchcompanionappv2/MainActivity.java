@@ -13,41 +13,53 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.os.Bundle;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
-import com.google.android.material.tabs.TabLayout;
-
-import androidx.viewpager.widget.ViewPager;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.util.Log;
 import android.view.View;
-
-import com.example.smartwatchcompanionappv2.ui.main.SectionsPagerAdapter;
+import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static MainActivity reference;
+    public static String serviceUUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    public static String charUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+    private static String TAG = "Main";
     public static BLEGATT blegatt;
+    public static String[] tabText = {"First Tab", "Second Tab"};
+    public static TextView txtView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        SectionsPagerAdapter sectionsPagerAdapter = new SectionsPagerAdapter(this, getSupportFragmentManager());
-        ViewPager viewPager = findViewById(R.id.view_pager);
-        viewPager.setAdapter(sectionsPagerAdapter);
-        TabLayout tabs = findViewById(R.id.tabs);
-        tabs.setupWithViewPager(viewPager);
-        FloatingActionButton fab = findViewById(R.id.fab);
+        txtView = (TextView) findViewById(R.id.textView);
+        txtView.setText("Test");
+        reference = this;
 
-        fab.setOnClickListener(new View.OnClickListener() {
+        BLEScanner.startScan(this.getApplicationContext());
+        blegatt = new BLEGATT(this.getApplicationContext(), (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE));
+    }
+
+    public static void updateStatusText() {
+        reference.runOnUiThread(new Runnable() {
             @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+            public void run() {
+                String statusText = BLEGATT.getStatusText();
+                reference.txtView.setText(statusText);
             }
         });
 
-        BLEScanner.startScan(this.getApplicationContext());
-        blegatt = new BLEGATT((BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE));
     }
+
+    public void sdt(View view) {
+        sendDateAndTime();
+    }
+
+    void sendDateAndTime() {
+        Log.d(TAG, "SENDING DATE AND TIME");
+        blegatt.write(BLEGATT.getDateAndTime());
+    }
+
 }

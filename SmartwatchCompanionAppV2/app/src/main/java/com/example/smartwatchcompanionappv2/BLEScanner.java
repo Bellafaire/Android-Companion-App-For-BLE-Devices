@@ -22,7 +22,7 @@ import no.nordicsemi.android.support.v18.scanner.ScanSettings;
 public class BLEScanner {
 
     private static String TAG = "BLE";
-    static String serviceUUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+
 
 
     public static void startScan(Context con) {
@@ -39,7 +39,7 @@ public class BLEScanner {
                 .setReportDelay(100)
                 .build();
         List<ScanFilter> filters = new ArrayList<>();
-        filters.add(new ScanFilter.Builder().setServiceUuid(ParcelUuid.fromString(serviceUUID)).build());
+        filters.add(new ScanFilter.Builder().setServiceUuid(ParcelUuid.fromString(MainActivity.serviceUUID)).build());
         scanner.startScan(filters, settings, scb);
 
     }
