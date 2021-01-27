@@ -1,6 +1,7 @@
 package com.example.smartwatchcompanionappv2;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
@@ -37,23 +38,20 @@ public class BLEGATT {
 
     public static String getStatusText() {
         String ret = "";
-
         if (mConnected) {
             ret += "Connection Status: Connected";
         } else {
             ret += "Connection Status: Disconnected";
         }
         ret += "\n";
-
         ret += "Last Connected: " + lastConnected + "\n";
-
         Log.v(TAG, ret);
-
         return ret;
     }
 
-    public void connect(ScanResult sr) {
-        bluetoothGatt = sr.getDevice().connectGatt(con, true, gattCallback);
+    public void connect(BluetoothDevice sr) {
+//        Log.i(TAG, "attempting to connect to device: "+ sr.getName() + " With UUID " + sr.getUuids().toString());
+        bluetoothGatt = sr.connectGatt(con, true, gattCallback);
     }
 
     public void write(String str) {
@@ -122,6 +120,7 @@ public class BLEGATT {
                 Log.d(TAG, "Device can notify");
                 bluetoothGatt.setCharacteristicNotification(bluetoothGatt.getService(UUID.fromString(MainActivity.serviceUUID))
                         .getCharacteristic(UUID.fromString(MainActivity.charUUID)), true);
+                Log.i(TAG, "Registered for Notification");
             }
         }
 
@@ -142,7 +141,7 @@ public class BLEGATT {
                 characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
             if (gatt.readCharacteristic(characteristic)) {
-                Log.v(TAG, "characteristic changed to: " + new String(characteristic.getValue(), StandardCharsets.US_ASCII));
+                Log.i(TAG, "characteristic changed to: " + new String(characteristic.getValue(), StandardCharsets.US_ASCII));
             }
         }
 

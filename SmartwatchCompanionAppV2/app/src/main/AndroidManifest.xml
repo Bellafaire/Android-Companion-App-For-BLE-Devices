@@ -29,12 +29,11 @@
         </activity>
 
         <receiver
-            android:name=".BLEReceiver"
+            android:name="com.example.smartwatchcompanionappv2.BLEReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.smartwatchCompanion.bleReciever.ACTION_SCANNER_FOUND_DEVICE" />
-                <category android:name="android.intent.category.DEFAULT" />
+                <action android:name="com.smartwatchCompanion.bleReceiver.ACTION_SCANNER_FOUND_DEVICE" />
             </intent-filter>
         </receiver>
 

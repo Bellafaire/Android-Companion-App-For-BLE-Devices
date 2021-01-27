@@ -20,11 +20,11 @@ import no.nordicsemi.android.support.v18.scanner.ScanResult;
 public class BLEReceiver extends BroadcastReceiver {
     private static final String TAG = "BLEReceiver";
 
-    public static final String ACTION_SCANNER_FOUND_DEVICE = "com.smartwatchCompanion.bleReciever.ACTION_SCANNER_FOUND_DEVICE";
+    public static final String ACTION_SCANNER_FOUND_DEVICE = "com.smartwatchCompanion.bleReceiver.ACTION_SCANNER_FOUND_DEVICE";
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.i(TAG, "Broadcast Receiver Triggered");
+        Log.i(TAG, "Broadcast Receiver Triggered " + intent.toString());
 
         switch (intent.getAction()) {
 
@@ -53,7 +53,7 @@ public class BLEReceiver extends BroadcastReceiver {
                             String scanName = scanRecord.getDeviceName();
                             String deviceName = device.getName();
                             int rssi = result.getRssi();
-                            //mHeader.setText("Single device found: " + device.getName() + " RSSI: " + result.getRssi() + "dBm");
+//                            mHeader.setText("Single device found: " + device.getName() + " RSSI: " + result.getRssi() + "dBm");
                             Log.i(TAG, "Found: " + device.getAddress()
                                     + " scan name: " + scanName
                                     + " device name: " + deviceName
@@ -62,8 +62,9 @@ public class BLEReceiver extends BroadcastReceiver {
                             //we have the result now lets send it back to main activity so that it can
                             //connect and communicate
                             if (result != null) {
-                                MainActivity.blegatt.connect(result);
+                                MainActivity.blegatt.connect(result.getDevice());
                             }
+
                         }
 
                     } else {

@@ -41,8 +41,8 @@ import java.util.TimeZone;
 public class MainActivity extends AppCompatActivity {
 
     public static MainActivity reference;
-    public static String serviceUUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-    public static String charUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+    public static String serviceUUID = "5ac9bc5e-f8ba-48d4-8908-98b80b566e49";
+    public static String charUUID = "bcca872f-1a3e-4491-b8ec-bfc93c5dd91a";
 
     public static String notificationData = "";
 
@@ -59,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        BLEScanner.startScan(this.getApplicationContext());
+        blegatt = new BLEGATT(this.getApplicationContext(), (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE));
+
         try {
             int pid = android.os.Process.myUid();
             String whiteList = "logcat -P '" + pid + "'";
@@ -72,12 +75,12 @@ public class MainActivity extends AppCompatActivity {
         reference = this;
 
         checkPermission(Manifest.permission.READ_CALENDAR, 10);
-        checkPermission(Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE, 11);
-        checkPermission(Manifest.permission.BLUETOOTH, 12);
+//        checkPermission(Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE, 11);
+//        checkPermission(Manifest.permission.BLUETOOTH, 12);
         checkPermission(Manifest.permission.BLUETOOTH_ADMIN, 13);
-        checkPermission(Manifest.permission.ACCESS_COARSE_LOCATION, 14);
+//        checkPermission(Manifest.permission.ACCESS_COARSE_LOCATION, 14);
         checkPermission(Manifest.permission.ACCESS_FINE_LOCATION, 15);
-        checkPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION, 16);
+//        checkPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION, 16);
 
 
         //init notification receiver
@@ -99,8 +102,6 @@ public class MainActivity extends AppCompatActivity {
         sfilter.addAction("com.spotify.music.queuechanged");
         registerReceiver(sReceiver, sfilter);
 
-        BLEScanner.startScan(this.getApplicationContext());
-        blegatt = new BLEGATT(this.getApplicationContext(), (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE));
     }
 
     // Function to check and request permission
@@ -140,7 +141,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sdt(View view) {
-        sendDateAndTime();
+BLEScanner.stopScan(this);
+
+        //     sendDateAndTime();
     }
 
     void sendDateAndTime() {
