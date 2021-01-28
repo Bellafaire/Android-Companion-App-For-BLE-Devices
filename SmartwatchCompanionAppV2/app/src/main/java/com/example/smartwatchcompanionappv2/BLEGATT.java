@@ -26,16 +26,17 @@ public class BLEGATT {
     static private boolean mConnected = false;
     static private boolean readyToSend = false;
     static private String lastConnected = "";
+    boolean writeInProgress = false;
+    int mtuSize = 16;
 
-    public static String currentMessage = "";
+    public static MessageClipper currentMessage = new MessageClipper("");
     public static String currentUUID = MainActivity.COMMAND_UUID;
 
     private static String TAG = "BLEGATT";
 
     private BluetoothAdapter bluetoothAdapter;
-    private static BluetoothGatt bluetoothGatt;
+    private BluetoothGatt bluetoothGatt;
     private Context con;
-    private BluetoothGattService deviceService;
 
     public BLEGATT(Context c, BluetoothManager bm) {
         con = c;
@@ -58,17 +59,41 @@ public class BLEGATT {
 
     public void connect(BluetoothDevice sr) {
 //        Log.i(TAG, "attempting to connect to device: "+ sr.getName() + " With UUID " + sr.getUuids().toString());
-        if (!mConnected) {
-            bluetoothGatt = sr.connectGatt(con, true, gattCallback);
-            Log.i(TAG, "Connected to BLEGatt Server");
+        bluetoothGatt = sr.connectGatt(con, true, gattCallback);
+
+        Log.i(TAG, "Connected to BLEGatt Server");
+    }
+
+    public static boolean isConnected() {
+        return mConnected;
+    }
+
+    public boolean update() {
+        if (writeInProgress) {
+            return true;
         }
+        if (!currentMessage.messageComplete()) {
+            write(currentMessage.getNextMessage(), currentUUID);
+            return true;
+        }
+
+        return false;
     }
 
     public boolean write(String str, String uuid) {
-        BluetoothGattCharacteristic bgc = deviceService.getCharacteristic(UUID.fromString(uuid));
-        bgc.setValue(str);
-        bluetoothGatt.writeCharacteristic(bgc);
-        return true;
+        writeInProgress = true;
+        BluetoothGattCharacteristic bgc = bluetoothGatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristic(UUID.fromString(uuid));
+        if (bgc != null) {
+            bgc.setValue(str);
+            if (bluetoothGatt.writeCharacteristic(bgc)) {
+                Log.d(TAG, "transmitted:" + str);
+            } else {
+                Log.e(TAG, "Failed to transmit data");
+            }
+        } else {
+            Log.e(TAG, "Characteristic is null");
+        }
+        return false;
     }
 
 
@@ -94,6 +119,7 @@ public class BLEGATT {
                 lastConnected = getDateAndTime();
 
 
+                bluetoothGatt.requestMtu(512);
 //                        broadcastUpdate(intentAction);
                 Log.i(TAG, "Connected to GATT server.");
                 Log.i(TAG, "Attempting to start service discovery:" +
@@ -105,6 +131,7 @@ public class BLEGATT {
                 lastConnected = getDateAndTime();
 
                 Log.i(TAG, "Disconnected from GATT server.");
+                con.stopService(new Intent(con, BLESend.class));
             }
 
             MainActivity.updateStatusText();
@@ -114,17 +141,16 @@ public class BLEGATT {
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
 
-            if(gatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)) != null) {
-                deviceService = gatt.getService(UUID.fromString(MainActivity.SERVICE_UUID));
-                Log.d(TAG, deviceService.getUuid().toString());
-                Log.i(TAG, "Obtained service");
-            }
+
+            Log.d(TAG, bluetoothGatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getUuid().toString());
+            Log.i(TAG, "Obtained service");
+
             List<BluetoothGattCharacteristic> chars = gatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristics();
 
             for (int a = 0; a < chars.size(); a++) {
                 if ((chars.get(a).getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
                     bluetoothGatt.setCharacteristicNotification(chars.get(a), true);
-                    Log.i(TAG, "Subscribed to characteristic: " + chars.get(a).getUuid().toString());
+                    Log.i(TAG, "Subscribed to characteristic: " + new String(chars.get(a).getUuid().toString()));
                 }
             }
 
@@ -140,38 +166,33 @@ public class BLEGATT {
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic
                 characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
-            Log.i(TAG, "Wrote Characteristic with status of result: " + status);
+
+            writeInProgress = false;
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG, "BLE Write success");
+            } else {
+                Log.e(TAG, "BLE Write failed");
+            }
         }
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic
                 characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
-
-            gatt.readCharacteristic(characteristic);
-            Log.i(TAG, "Characteristic " + characteristic.getUuid().toString() + " Has changed");
             if (characteristic.getUuid().equals(UUID.fromString(MainActivity.COMMAND_UUID))) {
-                gatt.readCharacteristic(characteristic);
+                String charVal = new String(characteristic.getValue(), StandardCharsets.US_ASCII);
+                Log.i(TAG, "Command characteristic changed to:" + charVal);
+                if (charVal.equals("/notifications")) {
 
-                String command = new String(characteristic.getValue(), StandardCharsets.US_ASCII);
-                Log.i(TAG, "Command Characteristic Changed to: " + command);
+                    currentMessage = new MessageClipper(MainActivity.notificationData, mtuSize);
+                    currentUUID = MainActivity.COMMAND_UUID;
 
-
-                if (command.contains("/notifications")) {
-                    currentMessage = MainActivity.notificationData;
-                    currentUUID = MainActivity.NOTIFICATION_UUID;
+                    Intent i = new Intent(BLESend.BLE_UPDATE);
+                    con.sendBroadcast(i);
                 }
 
-            } else if (characteristic.getUuid().equals(UUID.fromString(currentUUID))) {
-                readyToSend = true;
-            } else {
-                Log.e(TAG, "Unidentified write operation on characteristic of:" + new String(characteristic.getValue(), StandardCharsets.US_ASCII));
             }
 
-
-//            if (gatt.readCharacteristic(characteristic)) {
-//                Log.i(TAG, "characteristic changed to: " + new String(characteristic.getValue(), StandardCharsets.US_ASCII));
-//            }
         }
 
         @Override
@@ -190,8 +211,6 @@ public class BLEGATT {
         @Override
         public void onReliableWriteCompleted(BluetoothGatt gatt, int status) {
             super.onReliableWriteCompleted(gatt, status);
-
-            Log.i(TAG, "ReliableWrite Characteristic with status of result: " + status);
         }
 
         @Override
@@ -202,6 +221,8 @@ public class BLEGATT {
         @Override
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
             super.onMtuChanged(gatt, mtu, status);
+            Log.d(TAG, "MTU changed to: " + mtu);
+            mtuSize = mtu;
         }
     };
 

@@ -61,11 +61,19 @@ public class BLEReceiver extends BroadcastReceiver {
 
                             //we have the result now lets send it back to main activity so that it can
                             //connect and communicate
-                            try {
-                                MainActivity.reference.blegatt.connect(result.getDevice());
-                            } catch (NullPointerException e) {
-                                e.printStackTrace();
-                                Log.e(TAG, "Failed to connect to scan result");
+//                            try {
+//                                MainActivity.reference.blegatt.connect(result.getDevice());
+//                            } catch (NullPointerException e) {
+//                                e.printStackTrace();
+//                                Log.e(TAG, "Failed to connect to scan result");
+//                            }
+                            if (result.getDevice() != null) {
+                                MainActivity.currentDevice = result.getDevice();
+                                try {
+                                    context.startService(new Intent(context, BLESend.class));
+                                }catch (IllegalStateException e ){
+                                    Log.e(TAG, "Could not register service");
+                                }
                             }
                         }
                     } else {

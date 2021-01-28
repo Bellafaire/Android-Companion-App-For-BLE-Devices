@@ -13,6 +13,7 @@ import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
@@ -47,19 +48,13 @@ public class MainActivity extends AppCompatActivity {
     public static MainActivity reference;
     public static final String SERVICE_UUID = "5ac9bc5e-f8ba-48d4-8908-98b80b566e49";
     public static final String COMMAND_UUID = "bcca872f-1a3e-4491-b8ec-bfc93c5dd91a";
-    public static final String NOTIFICATION_UUID = "921d9d4c-d833-4468-b2f0-ef1103018da7";
-    public static final String TIME_UUID = "9a8eaee3-6c00-435a-b776-bbb9901e11c2";
-    public static final String SPOTIFY_STATUS_UUID = "3683b4fc-7ced-4ec9-ae6c-bcb8d20e0d20";
-    public static final String SPOTIFY_SONG_UUID = "8129b0cc-32bb-40a5-9fc2-a70e06f00cf1";
-    public static final String CALENDAR_UUID = "cad2c1ad-4d70-413b-97da-5967a0c99b8a";
 
-    private PendingIntent pendingIntent;
-    private AlarmManager manager;
+
+    public static BluetoothDevice currentDevice;
 
     public static String notificationData = "";
 
     private static String TAG = "Main";
-    public BLEGATT blegatt;
     public static String[] tabText = {"First Tab", "Second Tab"};
     public static TextView txtView;
 
@@ -72,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         BLEScanner.startScan(this.getApplicationContext());
-        blegatt = new BLEGATT(this.getApplicationContext(), (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE));
+//        blegatt = new BLEGATT(this.getApplicationContext(), (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE));
 
         try {
             int pid = android.os.Process.myUid();
@@ -95,9 +90,6 @@ public class MainActivity extends AppCompatActivity {
 //        checkPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION, 16);
         checkPermission(Manifest.permission.FOREGROUND_SERVICE, 16);
 
-        // Retrieve a PendingIntent that will perform a broadcast
-        Intent alarmIntent = new Intent(this, BLESend.class);
-        pendingIntent = PendingIntent.getBroadcast(this, 0, alarmIntent, 0);
 
         //init notification receiver
         nReceiver = new NotificationReceiver();
@@ -118,15 +110,6 @@ public class MainActivity extends AppCompatActivity {
         sfilter.addAction("com.spotify.music.queuechanged");
         registerReceiver(sReceiver, sfilter);
 
-        startAlarm();
-    }
-
-    public void startAlarm() {
-        manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        int interval = 100;
-
-        manager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), interval, pendingIntent);
-        Toast.makeText(this, "Alarm Set", Toast.LENGTH_SHORT).show();
     }
 
     // Function to check and request permission
@@ -164,26 +147,14 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void sendBLE(View view) {
-        reference.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                boolean s = blegatt.write(blegatt.currentMessage, blegatt.currentUUID);
-                if (!s) {
-                    Log.e(TAG, "FAILED TO WRITE TO CHARACTERISTIC");
-                }
-            }
-        });
-    }
-
     public void sdt(View view) {
-        Log.d(TAG, "sending notification data");
-        blegatt.write(notificationData, blegatt.currentUUID);
+        Intent i = new Intent(BLESend.BLE_UPDATE);
+        sendBroadcast(i);
+//        BluetoothAdapter.getDefaultAdapter().disable();
+//        BluetoothAdapter.getDefaultAdapter().enable();
     }
 
     void sendDateAndTime() {
-        Log.v(TAG, "SENDING DATE AND TIME");
-        blegatt.write(BLEGATT.getDateAndTime(), TIME_UUID);
     }
 
     //sends intent to obtain notification data and updates the textview
