@@ -1,7 +1,6 @@
 package com.example.smartwatchcompanionappv2;
 
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.ParcelUuid;
@@ -11,7 +10,6 @@ import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import no.nordicsemi.android.support.v18.scanner.BluetoothLeScannerCompat;
 import no.nordicsemi.android.support.v18.scanner.ScanCallback;
@@ -38,7 +36,7 @@ public class BLEScanner {
                 .build();
         List<ScanFilter> filters = new ArrayList<>();
         filters.add(new ScanFilter.Builder()
-                .setServiceUuid(ParcelUuid.fromString(MainActivity.serviceUUID))
+                .setServiceUuid(ParcelUuid.fromString(MainActivity.SERVICE_UUID))
                 .build());
         scanner.startScan(filters, settings, con, pendingIntent);
     }

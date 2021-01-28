@@ -9,6 +9,7 @@
     <uses-permission-sdk-23 android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
     <application
         android:allowBackup="true"
@@ -36,6 +37,8 @@
                 <action android:name="com.smartwatchCompanion.bleReceiver.ACTION_SCANNER_FOUND_DEVICE" />
             </intent-filter>
         </receiver>
+
+        <receiver android:name=".BLESend"></receiver>
 
         <service
             android:name="com.example.smartwatchcompanionappv2.NLService"

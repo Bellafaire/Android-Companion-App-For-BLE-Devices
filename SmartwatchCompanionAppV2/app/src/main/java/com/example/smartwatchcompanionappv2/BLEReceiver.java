@@ -61,12 +61,13 @@ public class BLEReceiver extends BroadcastReceiver {
 
                             //we have the result now lets send it back to main activity so that it can
                             //connect and communicate
-                            if (result != null) {
-                                MainActivity.blegatt.connect(result.getDevice());
+                            try {
+                                MainActivity.reference.blegatt.connect(result.getDevice());
+                            } catch (NullPointerException e) {
+                                e.printStackTrace();
+                                Log.e(TAG, "Failed to connect to scan result");
                             }
-
                         }
-
                     } else {
                         // Received something, but not a list of scan results...
                         Log.d(TAG, "   no ArrayList but " + o);
