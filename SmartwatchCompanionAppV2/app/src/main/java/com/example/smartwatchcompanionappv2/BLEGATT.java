@@ -34,13 +34,11 @@ public class BLEGATT {
 
     private static String TAG = "BLEGATT";
 
-    private BluetoothAdapter bluetoothAdapter;
     private BluetoothGatt bluetoothGatt;
     private Context con;
 
-    public BLEGATT(Context c, BluetoothManager bm) {
+    public BLEGATT(Context c) {
         con = c;
-        bluetoothAdapter = bm.getAdapter();
     }
 
 
@@ -132,6 +130,7 @@ public class BLEGATT {
 
                 Log.i(TAG, "Disconnected from GATT server.");
                 con.stopService(new Intent(con, BLESend.class));
+                bluetoothGatt = null;
             }
 
             MainActivity.updateStatusText();
@@ -183,10 +182,13 @@ public class BLEGATT {
                 String charVal = new String(characteristic.getValue(), StandardCharsets.US_ASCII);
                 Log.i(TAG, "Command characteristic changed to:" + charVal);
                 if (charVal.equals("/notifications")) {
-
                     currentMessage = new MessageClipper(MainActivity.notificationData, mtuSize);
                     currentUUID = MainActivity.COMMAND_UUID;
-
+                    Intent i = new Intent(BLESend.BLE_UPDATE);
+                    con.sendBroadcast(i);
+                }else if(charVal.equals("/calendar")){
+                    currentMessage = new MessageClipper(CalendarReader.getDataFromEventTable(), mtuSize);
+                    currentUUID = MainActivity.COMMAND_UUID;
                     Intent i = new Intent(BLESend.BLE_UPDATE);
                     con.sendBroadcast(i);
                 }

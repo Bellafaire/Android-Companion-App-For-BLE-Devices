@@ -24,29 +24,30 @@ public class BLESend extends Service {
     public void onCreate() {
         super.onCreate();
         Log.i(TAG, "onCreate: Called");
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i(TAG, "Started BLE Handler Service with ID:" + startId);
-
-        blegatt = new BLEGATT(this.getApplicationContext(), (BluetoothManager) this.getApplicationContext().getSystemService(Context.BLUETOOTH_SERVICE));
-        blegatt.connect(MainActivity.currentDevice);
 
         //init notification receiver
         nReceiver = new BLEUpdateReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(BLE_UPDATE);
         registerReceiver(nReceiver, filter);
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i(TAG, "Started BLE Handler Service with ID:" + startId);
+
+        blegatt = new BLEGATT(this.getApplicationContext());
+        blegatt.connect(MainActivity.currentDevice);
 
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        super.onDestroy();
+
         Log.i(TAG, "Device Disconnected, BLESend service is now ending");
         unregisterReceiver(nReceiver);
-        super.onDestroy();
     }
 
     @Nullable
