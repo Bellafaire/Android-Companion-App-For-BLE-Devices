@@ -1,5 +1,7 @@
 package com.example.smartwatchcompanionappv2;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -8,11 +10,15 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
+import androidx.core.app.NotificationCompat;
+
 import java.util.ArrayList;
 
 import no.nordicsemi.android.support.v18.scanner.BluetoothLeScannerCompat;
 import no.nordicsemi.android.support.v18.scanner.ScanRecord;
 import no.nordicsemi.android.support.v18.scanner.ScanResult;
+
+import static androidx.core.app.NotificationCompat.PRIORITY_LOW;
 
 /* Recieves call
 
@@ -67,11 +73,14 @@ public class BLEReceiver extends BroadcastReceiver {
 //                                e.printStackTrace();
 //                                Log.e(TAG, "Failed to connect to scan result");
 //                            }
-                            if (result.getDevice() != null) {
-                                MainActivity.currentDevice = result.getDevice();
+
+                            MainActivity.currentDevice = result.getDevice();
+                            if (MainActivity.currentDevice.getName() != null) {
                                 try {
-                                    context.startService(new Intent(context, BLESend.class));
-                                }catch (IllegalStateException e ){
+                                    if (!BLESend.isRunning) {
+                                        context.startForegroundService(new Intent(context, BLESend.class));
+                                    }
+                                } catch (IllegalStateException e) {
                                     Log.e(TAG, "Could not register service");
                                 }
                             }

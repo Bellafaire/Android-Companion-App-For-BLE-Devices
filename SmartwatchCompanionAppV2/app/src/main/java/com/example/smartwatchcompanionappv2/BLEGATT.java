@@ -24,17 +24,17 @@ import java.util.UUID;
 
 public class BLEGATT {
     static private boolean mConnected = false;
-    static private boolean readyToSend = false;
+    private boolean readyToSend = false;
     static private String lastConnected = "";
     boolean writeInProgress = false;
     int mtuSize = 16;
 
-    public static MessageClipper currentMessage = new MessageClipper("");
-    public static String currentUUID = MainActivity.COMMAND_UUID;
+    public MessageClipper currentMessage = new MessageClipper("");
+    public String currentUUID = MainActivity.COMMAND_UUID;
 
     private static String TAG = "BLEGATT";
 
-    private BluetoothGatt bluetoothGatt;
+    private static BluetoothGatt bluetoothGatt;
     private Context con;
 
     public BLEGATT(Context c) {
@@ -56,10 +56,8 @@ public class BLEGATT {
     }
 
     public void connect(BluetoothDevice sr) {
-//        Log.i(TAG, "attempting to connect to device: "+ sr.getName() + " With UUID " + sr.getUuids().toString());
+        Log.i(TAG, "attempting to connect to device: " + sr.getName() + " With Address " + sr.getAddress());
         bluetoothGatt = sr.connectGatt(con, true, gattCallback);
-
-        Log.i(TAG, "Connected to BLEGatt Server");
     }
 
     public static boolean isConnected() {
@@ -116,12 +114,15 @@ public class BLEGATT {
                 mConnected = true;
                 lastConnected = getDateAndTime();
 
+                bluetoothGatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH);
+//                bluetoothGatt.requestMtu(512);
 
-                bluetoothGatt.requestMtu(512);
-//                        broadcastUpdate(intentAction);
-                Log.i(TAG, "Connected to GATT server.");
-                Log.i(TAG, "Attempting to start service discovery:" +
-                        bluetoothGatt.discoverServices());
+                if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    Log.d(TAG, "Connected to GATT server, discovering services...");
+                    gatt.discoverServices();
+                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    Log.d(TAG, "Disconnected from GATT server");
+                }
 
 
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
@@ -129,8 +130,12 @@ public class BLEGATT {
                 lastConnected = getDateAndTime();
 
                 Log.i(TAG, "Disconnected from GATT server.");
+                Log.i(TAG, "Closing Gatt Server");
+
+//                bluetoothGatt.close();
                 con.stopService(new Intent(con, BLESend.class));
-                bluetoothGatt = null;
+            } else {
+                Log.i(TAG, "Other status change in BLE connection:" + newState);
             }
 
             MainActivity.updateStatusText();
@@ -140,15 +145,14 @@ public class BLEGATT {
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
 
-
-            Log.d(TAG, bluetoothGatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getUuid().toString());
+            Log.i(TAG, gatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getUuid().toString());
             Log.i(TAG, "Obtained service");
 
             List<BluetoothGattCharacteristic> chars = gatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristics();
 
             for (int a = 0; a < chars.size(); a++) {
                 if ((chars.get(a).getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
-                    bluetoothGatt.setCharacteristicNotification(chars.get(a), true);
+                    gatt.setCharacteristicNotification(chars.get(a), true);
                     Log.i(TAG, "Subscribed to characteristic: " + new String(chars.get(a).getUuid().toString()));
                 }
             }
@@ -186,11 +190,13 @@ public class BLEGATT {
                     currentUUID = MainActivity.COMMAND_UUID;
                     Intent i = new Intent(BLESend.BLE_UPDATE);
                     con.sendBroadcast(i);
-                }else if(charVal.equals("/calendar")){
+                } else if (charVal.equals("/calendar")) {
                     currentMessage = new MessageClipper(CalendarReader.getDataFromEventTable(), mtuSize);
                     currentUUID = MainActivity.COMMAND_UUID;
                     Intent i = new Intent(BLESend.BLE_UPDATE);
                     con.sendBroadcast(i);
+                }else{
+                    Log.e(TAG, "Unrecognized command:" + charVal);
                 }
 
             }

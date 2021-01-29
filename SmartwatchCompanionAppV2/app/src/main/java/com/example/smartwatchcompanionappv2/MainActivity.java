@@ -66,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+
         BLEScanner.startScan(this.getApplicationContext());
 //        blegatt = new BLEGATT(this.getApplicationContext(), (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE));
 
@@ -134,23 +135,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static void updateStatusText() {
+        try {
         reference.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                String statusText = BLEGATT.getStatusText()
-                        + "\nNotification Data: \n" + notificationData
-                        + "\n\nSpotify:\n" + sReceiver.getStatusText()
-                        + "\n\nCalendar:\n" + CalendarReader.getDataFromEventTable();
-                reference.txtView.setText(statusText);
+
+                    String statusText = BLEGATT.getStatusText()
+                            + "\nNotification Data: \n" + notificationData
+                            + "\n\nSpotify:\n" + sReceiver.getStatusText()
+                            + "\n\nCalendar:\n" + CalendarReader.getDataFromEventTable();
+                    reference.txtView.setText(statusText);
             }
         });
-
+        }catch(Exception e){
+            String statusText = "Connecting";
+        }
     }
 
     public void sdt(View view) {
-        Intent i = new Intent(BLESend.BLE_UPDATE);
-        sendBroadcast(i);
-//        BluetoothAdapter.getDefaultAdapter().disable();
+//        Intent i = new Intent(BLESend.BLE_UPDATE);
+//        sendBroadcast(i);
+        BluetoothAdapter.getDefaultAdapter().disable();
 //        BluetoothAdapter.getDefaultAdapter().enable();
     }
 
