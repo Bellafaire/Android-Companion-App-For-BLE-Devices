@@ -1,6 +1,7 @@
 package com.example.smartwatchcompanionappv2;
 
 
+import android.Manifest;
 import android.app.Notification;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -36,6 +37,8 @@ public class NLService extends NotificationListenerService {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        Log.e(TAG, "Notification Listener Service created");
         nlservicereciver = new NLServiceReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(GET_NOTIFICATION_INTENT);
@@ -110,8 +113,10 @@ public class NLService extends NotificationListenerService {
                             } catch (Exception e) {
 
                             }
-                            i2.putExtra("notification_event", data + "\n");
-                            sendBroadcast(i2);
+                            if (!data.contains("ESP32 Smartwatch Companion App")) {
+                                i2.putExtra("notification_event", data + "\n");
+                                sendBroadcast(i2);
+                            }
                         } catch (Exception e) {
                             Log.e("inform", "Could not parse data for: " + getAppNameFromPkgName(context, sbn.getPackageName()) + " due to " + e.getMessage());
                         }

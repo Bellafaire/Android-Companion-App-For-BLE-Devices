@@ -87,7 +87,6 @@ public class MainActivity extends AppCompatActivity {
 
         //request some permissions (There are better ways to do this)
         checkPermission(Manifest.permission.READ_CALENDAR, 10);
-        checkPermission(Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE, 11);
         checkPermission(Manifest.permission.BLUETOOTH, 12);
         checkPermission(Manifest.permission.BLUETOOTH_ADMIN, 13);
         checkPermission(Manifest.permission.ACCESS_FINE_LOCATION, 15);
@@ -119,33 +118,33 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Function to check and request permission
-    public void checkPermission(String permission, int requestCode) {
+    public static void checkPermission(String permission, int requestCode) {
         // Checking if permission is not granted
         if (ContextCompat.checkSelfPermission(
-                MainActivity.this,
+                reference,
                 permission)
                 == PackageManager.PERMISSION_DENIED) {
             ActivityCompat
                     .requestPermissions(
-                            MainActivity.this,
+                            reference,
                             new String[]{permission},
                             requestCode);
         } else {
-            Toast.makeText(MainActivity.this,
+            Toast.makeText(reference,
                     "Permission already granted",
                     Toast.LENGTH_SHORT)
                     .show();
         }
     }
 
-    public static void updateStatusText() {
-        //get the current notifications by broadcasting an intent
+    public static void updateNotifications() {
         Intent i = new Intent(NLService.GET_NOTIFICATION_INTENT);
         i.putExtra("command", "list");
         reference.sendBroadcast(i);
+    }
 
+    public static void updateStatusText() {
         try {
-
             reference.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -157,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
                     reference.txtView.setText(statusText);
                 }
             });
-        }catch(Exception e){
+        } catch (Exception e) {
             String statusText = "Connecting";
             reference.txtView.setText(statusText);
         }
@@ -166,6 +165,11 @@ public class MainActivity extends AppCompatActivity {
     //this is a stupid function i need to remove, it just turns bluetooth off altogether
     public void sdt(View view) {
         BluetoothAdapter.getDefaultAdapter().disable();
+    }
+
+    public void gotoSettings(View view) {
+        Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+        startActivity(intent);
     }
 
     //receives the data from the NLService and updates fields in this class.

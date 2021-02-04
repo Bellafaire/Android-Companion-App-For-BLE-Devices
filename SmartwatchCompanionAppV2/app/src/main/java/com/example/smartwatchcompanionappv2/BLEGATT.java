@@ -170,6 +170,8 @@ public class BLEGATT {
                 //discover services that the device has available
                 gatt.discoverServices();
 
+                gatt.requestMtu(256);
+
                 //device is disconnected
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 //update status variables
@@ -184,6 +186,7 @@ public class BLEGATT {
             }
 
             //update the status text on the home screen of the app.
+            MainActivity.updateNotifications();
             MainActivity.updateStatusText();
         }
 
@@ -255,9 +258,13 @@ public class BLEGATT {
                 switch (charVal) {
                     case "/notifications": {
                         //load message clipper with data, taking into account of MTU data
-                        currentMessage = new MessageClipper(MainActivity.notificationData, mtuSize);
-                        currentUUID = MainActivity.COMMAND_UUID;
-
+                        if(MainActivity.notificationData.length() <2) {
+                            currentMessage = new MessageClipper("   ", mtuSize);
+                            currentUUID = MainActivity.COMMAND_UUID;
+                        }else{
+                            currentMessage = new MessageClipper(MainActivity.notificationData, mtuSize);
+                            currentUUID = MainActivity.COMMAND_UUID;
+                        }
                         //send broadcast to begin process
                         Intent i = new Intent(BLE_UPDATE);
                         con.sendBroadcast(i);
