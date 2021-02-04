@@ -37,7 +37,7 @@ void setup() {
 
 void loop() {
   //available commands
-  //  sendBLE("/notifications", &string); //gets current android notifications as a string
+  //  sendBLE("/notifications", &string); //gets current android notifications as a string format "appName,Title;ExtraText,ExtraInfoText,ExtraSubText,ExtraTitle;Description;"
   //  sendBLE("/calendar", &string); // returns a string of calender events for the next 24 hours in format "title;description;startDate;startTime;endTime;eventLocation;"
   //  sendBLE("/isPlaying", &string); //returns "true" or "false" indicating whether spotify is playing on the android device
   //  sendBLE("/currentSong", &string); //returns the current song name and artist playing on spotify as one string
@@ -49,8 +49,8 @@ void loop() {
   if (connected && !operationInProgress) {
     //commands submitted will take some time to be completed. In that time the data recieved from the android device is placed into the
     // string indicated by the pointer, other operations are allowed to happen during this time
-    sendBLE("/notifications", &notificationData);
+    sendBLE("/calendar", &notificationData);
   }
-  Serial.println(notificationData);
   delay(1000);
+  Serial.println(notificationData);
 }

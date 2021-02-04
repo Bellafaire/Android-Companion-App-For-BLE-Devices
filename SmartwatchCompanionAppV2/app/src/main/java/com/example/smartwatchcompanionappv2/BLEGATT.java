@@ -36,7 +36,7 @@ public class BLEGATT {
     int mtuSize = 16;
     public String currentUUID = MainActivity.COMMAND_UUID;
 
-//constants
+    //constants
     public static final String BLE_UPDATE = "com.companionApp.BLE_UPDATE";
     private static String TAG = "BLEGATT";
 
@@ -69,7 +69,7 @@ public class BLEGATT {
 
     }
 
-//returns string showing the status of the gatt server
+    //returns string showing the status of the gatt server
     public static String getStatusText() {
         String ret = "";
         if (mConnected) {
@@ -96,7 +96,7 @@ public class BLEGATT {
     //in that way any more
     public boolean update() {
         //if we're not connected return false
-        if(!mConnected){
+        if (!mConnected) {
             return false;
         }
 
@@ -111,7 +111,7 @@ public class BLEGATT {
             return true;
 
             //if the message is complete then read the BLE characteristic (this indicates that the message transmission has been completed)
-        }else if(currentMessage.messageComplete()){
+        } else if (currentMessage.messageComplete()) {
             Log.i(TAG, "Reading BLE Characteristic to indicate end of transmission");
             BluetoothGattCharacteristic bgc = bluetoothGatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristic(UUID.fromString(currentUUID));
             bluetoothGatt.readCharacteristic(bgc);
@@ -166,7 +166,6 @@ public class BLEGATT {
 
                 //request higher connection priority (increases service discovery speed)
                 bluetoothGatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH);
-//                bluetoothGatt.requestMtu(512);
 
                 //discover services that the device has available
                 gatt.discoverServices();
@@ -253,7 +252,7 @@ public class BLEGATT {
             if (characteristic.getUuid().equals(UUID.fromString(MainActivity.COMMAND_UUID))) {
                 String charVal = new String(characteristic.getValue(), StandardCharsets.US_ASCII);
                 Log.i(TAG, "Command characteristic changed to:" + charVal);
-                switch(charVal){
+                switch (charVal) {
                     case "/notifications": {
                         //load message clipper with data, taking into account of MTU data
                         currentMessage = new MessageClipper(MainActivity.notificationData, mtuSize);
@@ -304,23 +303,67 @@ public class BLEGATT {
                         con.sendBroadcast(i);
                         break;
                     }
-                    case "/play":
+                    case "/play": {
                         //send keycode for play
                         pressMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY);
+
+
+                        //load message clipper with data, taking into account of MTU data
+                        //we still want to send a blank message when we're issuing a command so that
+                        //the ESP32 knows the command has been completed
+                        currentMessage = new MessageClipper("", mtuSize);
+                        currentUUID = MainActivity.COMMAND_UUID;
+                        //send broadcast to begin process
+                        Intent i = new Intent(BLE_UPDATE);
+                        con.sendBroadcast(i);
+
                         break;
-                    case "/pause":
+                    }
+                    case "/pause": {
                         //send keycode for play
                         pressMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE);
+
+                        //load message clipper with data, taking into account of MTU data
+                        //we still want to send a blank message when we're issuing a command so that
+                        //the ESP32 knows the command has been completed
+                        currentMessage = new MessageClipper("", mtuSize);
+                        currentUUID = MainActivity.COMMAND_UUID;
+                        //send broadcast to begin process
+                        Intent i = new Intent(BLE_UPDATE);
+                        con.sendBroadcast(i);
+
                         break;
-                    case "/nextSong":
+                    }
+                    case "/nextSong": {
                         //send keycode for play
                         pressMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT);
+
+                        //load message clipper with data, taking into account of MTU data
+                        //we still want to send a blank message when we're issuing a command so that
+                        //the ESP32 knows the command has been completed
+                        currentMessage = new MessageClipper("", mtuSize);
+                        currentUUID = MainActivity.COMMAND_UUID;
+                        //send broadcast to begin process
+                        Intent i = new Intent(BLE_UPDATE);
+                        con.sendBroadcast(i);
+
                         break;
-                    case "/lastSong":
+                    }
+                    case "/lastSong": {
                         //send keycode for play
                         pressMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS);
-                        break;
 
+                        //load message clipper with data, taking into account of MTU data
+                        //we still want to send a blank message when we're issuing a command so that
+                        //the ESP32 knows the command has been completed
+                        currentMessage = new MessageClipper("", mtuSize);
+                        currentUUID = MainActivity.COMMAND_UUID;
+                        //send broadcast to begin process
+                        Intent i = new Intent(BLE_UPDATE);
+                        con.sendBroadcast(i);
+
+                        break;
+                    }
                     default:
                         Log.e(TAG, "Unrecognized command:" + charVal);
                 }

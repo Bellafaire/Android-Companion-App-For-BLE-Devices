@@ -91,6 +91,7 @@ public class NLService extends NotificationListenerService {
                     if (!getAppNameFromPkgName(context, sbn.getPackageName()).equals("Spotify")) {
                         try {
                             //parse the data out of the statusbar notification object and format it into a string
+                            //format appName,Title;ExtraText,ExtraInfoText,ExtraSubText,ExtraTitle;Description;
                             String data = ifNotNull(getAppNameFromPkgName(context, sbn.getPackageName())) + "," //this comma is a feature
                                     + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_TITLE)).replace("\n", "").replace(";", ",") + ";"
                                     + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_TEXT)).replace("\n", "").replace(";", ",") + ";"
