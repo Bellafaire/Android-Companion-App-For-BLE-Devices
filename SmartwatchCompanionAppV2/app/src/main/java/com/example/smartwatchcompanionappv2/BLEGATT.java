@@ -238,6 +238,13 @@ public class BLEGATT {
                         con.sendBroadcast(i);
                         break;
                     }
+                    case "/time": {
+                        currentMessage = new MessageClipper(getDateAndTime(), mtuSize);
+                        currentUUID = MainActivity.COMMAND_UUID;
+                        Intent i = new Intent(BLE_UPDATE);
+                        con.sendBroadcast(i);
+                        break;
+                    }
                     case "/isPlaying": {
                         currentMessage = new MessageClipper(MainActivity.sReceiver.isPlaying(), mtuSize);
                         currentUUID = MainActivity.COMMAND_UUID;
