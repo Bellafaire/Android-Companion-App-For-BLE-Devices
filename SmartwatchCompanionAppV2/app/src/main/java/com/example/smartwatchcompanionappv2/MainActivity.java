@@ -138,6 +138,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static void updateNotifications() {
+        notificationData = "";
+        Log.e(TAG, "Updating Notifications");
         Intent i = new Intent(NLService.GET_NOTIFICATION_INTENT);
         i.putExtra("command", "list");
         reference.sendBroadcast(i);

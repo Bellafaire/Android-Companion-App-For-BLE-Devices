@@ -60,6 +60,7 @@ public class NLService extends NotificationListenerService {
         i.putExtra("notification_event", "");
         sendBroadcast(i);
 
+MainActivity.updateNotifications();
     }
 
     @Override
@@ -70,6 +71,8 @@ public class NLService extends NotificationListenerService {
         i.putExtra("notification_event", "onNotificationRemoved :" + sbn.getPackageName() + "n");
         i.putExtra("notification_event", "");
         sendBroadcast(i);
+
+        MainActivity.updateNotifications();
     }
 
 

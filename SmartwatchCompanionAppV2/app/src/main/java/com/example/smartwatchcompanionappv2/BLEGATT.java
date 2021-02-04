@@ -186,7 +186,7 @@ public class BLEGATT {
             }
 
             //update the status text on the home screen of the app.
-            MainActivity.updateNotifications();
+//            MainActivity.updateNotifications();
             MainActivity.updateStatusText();
         }
 
@@ -262,6 +262,7 @@ public class BLEGATT {
                             currentMessage = new MessageClipper("   ", mtuSize);
                             currentUUID = MainActivity.COMMAND_UUID;
                         }else{
+                            Log.v(TAG, "Sending Notification data: \n" + MainActivity.notificationData);
                             currentMessage = new MessageClipper(MainActivity.notificationData, mtuSize);
                             currentUUID = MainActivity.COMMAND_UUID;
                         }
