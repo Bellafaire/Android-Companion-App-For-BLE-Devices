@@ -58,9 +58,9 @@ public class SpotifyReceiver extends BroadcastReceiver {
     //return play status as a string (easier to send over BLE and debug on the other end to just use a string)
     public String isPlaying() {
         if (isPlaying) {
-            return "true";
+            return "1";
         } else {
-            return "false";
+            return "0";
         }
     }
 
