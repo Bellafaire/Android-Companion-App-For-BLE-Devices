@@ -1,7 +1,5 @@
 package com.example.smartwatchcompanionappv2;
 
-import android.app.Notification;
-import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -10,20 +8,16 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
-import androidx.core.app.NotificationCompat;
-
 import java.util.ArrayList;
 
 import no.nordicsemi.android.support.v18.scanner.BluetoothLeScannerCompat;
 import no.nordicsemi.android.support.v18.scanner.ScanRecord;
 import no.nordicsemi.android.support.v18.scanner.ScanResult;
 
-import static androidx.core.app.NotificationCompat.PRIORITY_LOW;
-
 /* Recieves call
 
  */
-public class BLEReceiver extends BroadcastReceiver {
+public class BLEScanReceiver extends BroadcastReceiver {
     private static final String TAG = "BLEReceiver";
 
     public static final String ACTION_SCANNER_FOUND_DEVICE = "com.smartwatchCompanion.bleReceiver.ACTION_SCANNER_FOUND_DEVICE";
@@ -77,9 +71,9 @@ public class BLEReceiver extends BroadcastReceiver {
                             MainActivity.currentDevice = result.getDevice();
                             if (MainActivity.currentDevice.getName() != null) {
                                 try {
-                                    if (!BLESend.isRunning) {
+                                    if (!BLEService.isRunning) {
 //                                        BLEScanner.stopScan(MainActivity.reference);
-                                        context.startForegroundService(new Intent(context, BLESend.class));
+                                        context.startForegroundService(new Intent(context, BLEService.class));
                                     }
                                 } catch (IllegalStateException e) {
                                     Log.e(TAG, "Could not register service");

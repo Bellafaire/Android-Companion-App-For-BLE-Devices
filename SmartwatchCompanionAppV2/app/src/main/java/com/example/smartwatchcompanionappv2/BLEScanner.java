@@ -24,8 +24,8 @@ public class BLEScanner {
 
     public static void startScan(Context con) {
         Log.i(TAG, "----------------- Starting BLE Scan ---------------------------");
-        Intent intent = new Intent(con, BLEReceiver.class); // explicite intent
-        intent.setAction(BLEReceiver.ACTION_SCANNER_FOUND_DEVICE);
+        Intent intent = new Intent(con, BLEScanReceiver.class); // explicite intent
+        intent.setAction(BLEScanReceiver.ACTION_SCANNER_FOUND_DEVICE);
 //        intent.putExtra("some.extra", value); // optional
         PendingIntent pendingIntent = PendingIntent.getBroadcast(con, code, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
@@ -45,7 +45,7 @@ public class BLEScanner {
 
     public static void stopScan(Context con) {
         // To stop scanning use the same or an equal PendingIntent (check PendingIntent documentation)
-        Intent intent = new Intent(con, BLEReceiver.class);
+        Intent intent = new Intent(con, BLEScanReceiver.class);
         intent.setAction("com.smartwatchCompanion.bleReciever.ACTION_SCANNER_FOUND_DEVICE");
         PendingIntent pendingIntent = PendingIntent.getBroadcast(con, code, intent, PendingIntent.FLAG_CANCEL_CURRENT);
 

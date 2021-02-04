@@ -98,6 +98,10 @@ public class BLEGATT {
         if (!currentMessage.messageComplete() && mConnected) {
             write(currentMessage.getNextMessage(), currentUUID);
             return true;
+        }else if(currentMessage.messageComplete()){
+            Log.i(TAG, "Reading BLE Characteristic to indicate end of transmission");
+            BluetoothGattCharacteristic bgc = bluetoothGatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristic(UUID.fromString(currentUUID));
+            bluetoothGatt.readCharacteristic(bgc);
         }
 
         return false;

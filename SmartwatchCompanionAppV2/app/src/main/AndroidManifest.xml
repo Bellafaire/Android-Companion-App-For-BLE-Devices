@@ -32,7 +32,7 @@
         </activity>
 
         <receiver
-            android:name="com.example.smartwatchcompanionappv2.BLEReceiver"
+            android:name="com.example.smartwatchcompanionappv2.BLEScanReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
@@ -41,7 +41,7 @@
         </receiver>
 
         <service
-            android:name=".BLESend"
+            android:name=".BLEService"
             android:launchMode="singleInstance" />
 
         <service
