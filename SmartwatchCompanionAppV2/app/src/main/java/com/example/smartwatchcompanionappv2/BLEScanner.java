@@ -20,13 +20,14 @@ import no.nordicsemi.android.support.v18.scanner.ScanSettings;
 public class BLEScanner {
 
     private static String TAG = "BLE";
+    private static int code = 4000;
 
     public static void startScan(Context con) {
         Log.i(TAG, "----------------- Starting BLE Scan ---------------------------");
         Intent intent = new Intent(con, BLEReceiver.class); // explicite intent
         intent.setAction(BLEReceiver.ACTION_SCANNER_FOUND_DEVICE);
 //        intent.putExtra("some.extra", value); // optional
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(con, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(con, code, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         BluetoothLeScannerCompat scanner = BluetoothLeScannerCompat.getScanner();
         ScanSettings settings = new ScanSettings.Builder()
@@ -46,7 +47,7 @@ public class BLEScanner {
         // To stop scanning use the same or an equal PendingIntent (check PendingIntent documentation)
         Intent intent = new Intent(con, BLEReceiver.class);
         intent.setAction("com.smartwatchCompanion.bleReciever.ACTION_SCANNER_FOUND_DEVICE");
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(con, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(con, code, intent, PendingIntent.FLAG_CANCEL_CURRENT);
 
         BluetoothLeScannerCompat scanner = BluetoothLeScannerCompat.getScanner();
         scanner.stopScan(con, pendingIntent);

@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
         checkPermission(Manifest.permission.BLUETOOTH_ADMIN, 13);
 //        checkPermission(Manifest.permission.ACCESS_COARSE_LOCATION, 14);
         checkPermission(Manifest.permission.ACCESS_FINE_LOCATION, 15);
-//        checkPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION, 16);
+        checkPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION, 16);
         checkPermission(Manifest.permission.FOREGROUND_SERVICE, 16);
 
 
@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
                     String statusText = BLEGATT.getStatusText()
                             + "\nNotification Data: \n" + notificationData
                             + "\n\nSpotify:\n" + sReceiver.getStatusText()
-                            + "\n\nCalendar:\n" + CalendarReader.getDataFromEventTable();
+                            + "\n\nCalendar:\n" + CalendarReader.getDataFromEventTable(reference);
                     reference.txtView.setText(statusText);
             }
         });

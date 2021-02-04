@@ -9,8 +9,10 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.util.Log;
 
 import androidx.core.content.ContextCompat;
@@ -29,6 +31,11 @@ public class BLEGATT {
     boolean writeInProgress = false;
     int mtuSize = 16;
 
+
+    public static final String BLE_UPDATE = "com.companionApp.BLE_UPDATE";
+
+    private static BLEUpdateReceiver nReceiver;
+
     public MessageClipper currentMessage = new MessageClipper("");
     public String currentUUID = MainActivity.COMMAND_UUID;
 
@@ -39,6 +46,21 @@ public class BLEGATT {
 
     public BLEGATT(Context c) {
         con = c;
+
+
+        //try and create a new one, if the last block failed then we will have no problems
+        try {
+            //init notification receiver
+            nReceiver = new BLEUpdateReceiver();
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(BLE_UPDATE);
+            con.registerReceiver(nReceiver, filter);
+            Log.i(TAG, "Re-registered broadcast reciever");
+        } catch (IllegalArgumentException e) {
+            //this is basically designed to crash so eh whatever
+            Log.e(TAG, "Failed to register broadcast reciever in BLESend: " + e.getLocalizedMessage());
+        }
+
     }
 
 
@@ -65,10 +87,13 @@ public class BLEGATT {
     }
 
     public boolean update() {
+        if(!mConnected){
+            return false;
+        }
         if (writeInProgress) {
             return true;
         }
-        if (!currentMessage.messageComplete()) {
+        if (!currentMessage.messageComplete() && mConnected) {
             write(currentMessage.getNextMessage(), currentUUID);
             return true;
         }
@@ -117,6 +142,7 @@ public class BLEGATT {
                 bluetoothGatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH);
 //                bluetoothGatt.requestMtu(512);
 
+
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     Log.d(TAG, "Connected to GATT server, discovering services...");
                     gatt.discoverServices();
@@ -132,8 +158,9 @@ public class BLEGATT {
                 Log.i(TAG, "Disconnected from GATT server.");
                 Log.i(TAG, "Closing Gatt Server");
 
-//                bluetoothGatt.close();
-                con.stopService(new Intent(con, BLESend.class));
+
+//                BLEScanner.startScan(MainActivity.reference);
+//                con.stopService(new Intent(con, BLESend.class));
             } else {
                 Log.i(TAG, "Other status change in BLE connection:" + newState);
             }
@@ -173,6 +200,8 @@ public class BLEGATT {
             writeInProgress = false;
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(TAG, "BLE Write success");
+                Intent i = new Intent(BLE_UPDATE);
+                con.sendBroadcast(i);
             } else {
                 Log.e(TAG, "BLE Write failed");
             }
@@ -188,17 +217,16 @@ public class BLEGATT {
                 if (charVal.equals("/notifications")) {
                     currentMessage = new MessageClipper(MainActivity.notificationData, mtuSize);
                     currentUUID = MainActivity.COMMAND_UUID;
-                    Intent i = new Intent(BLESend.BLE_UPDATE);
+                    Intent i = new Intent(BLE_UPDATE);
                     con.sendBroadcast(i);
                 } else if (charVal.equals("/calendar")) {
-                    currentMessage = new MessageClipper(CalendarReader.getDataFromEventTable(), mtuSize);
+                    currentMessage = new MessageClipper(CalendarReader.getDataFromEventTable(con), mtuSize);
                     currentUUID = MainActivity.COMMAND_UUID;
-                    Intent i = new Intent(BLESend.BLE_UPDATE);
+                    Intent i = new Intent(BLE_UPDATE);
                     con.sendBroadcast(i);
                 }else{
                     Log.e(TAG, "Unrecognized command:" + charVal);
                 }
-
             }
 
         }
@@ -233,6 +261,15 @@ public class BLEGATT {
             mtuSize = mtu;
         }
     };
+
+    class BLEUpdateReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.i(TAG, "Bluetooth update request received");
+            update();
+        }
+    }
+
 
     //returns a string representing the date and time
     public static String getDateAndTime() {

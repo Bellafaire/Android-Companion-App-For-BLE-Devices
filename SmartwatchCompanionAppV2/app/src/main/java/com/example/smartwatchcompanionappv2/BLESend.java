@@ -21,15 +21,17 @@ import androidx.core.app.NotificationCompat;
 
 public class BLESend extends Service {
 
-    public static final String BLE_UPDATE = "com.companionApp.BLE_UPDATE";
-    public static final String CHANNEL_ID = "com.companionApp.UPDATE_SERVICE";
+
     private static String TAG = "BLEService";
     private BLEGATT blegatt;
-    private BLEUpdateReceiver nReceiver;
+    private static BLESend reference;
+    public static final String CHANNEL_ID = "com.companionApp.UPDATE_SERVICE";
+
     public static Boolean isRunning = false;
 
     public void onCreate() {
         super.onCreate();
+        reference = this;
         Log.i(TAG, "onCreate: Called");
 
 
@@ -49,33 +51,14 @@ public class BLESend extends Service {
         startForeground(1, notification);
 
 
+
+
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "Started BLE Handler Service with ID:" + startId);
         isRunning = true;
-
-        //so basically, see if we can unregister the broadcast receiver
-        //if we can't its no big deal because it probably doesn't exist yet
-        try {
-            unregisterReceiver(nReceiver);
-        } catch(Exception e) {
-            //this is basically designed to crash so eh whatever
-        }
-
-
-        //try and create a new one, if the last block failed then we will have no problems
-        try {
-            //init notification receiver
-            nReceiver = new BLEUpdateReceiver();
-            IntentFilter filter = new IntentFilter();
-            filter.addAction(BLE_UPDATE);
-            registerReceiver(nReceiver, filter);
-            Log.i(TAG, "Re-registered broadcast reciever");
-        } catch(IllegalArgumentException e) {
-            //this is basically designed to crash so eh whatever
-        }
 
 
         MainActivity.updateStatusText();
@@ -86,16 +69,16 @@ public class BLESend extends Service {
         return START_STICKY;
     }
 
+
     @Override
     public void onDestroy() {
-        super.onDestroy();
-
         Log.i(TAG, "Device Disconnected, BLESend service is now ending");
-//        unregisterReceiver(nReceiver);
+
         isRunning = false;
 
-        Log.i(TAG, "Restarting Scan");
-        BLEScanner.startScan(getApplicationContext());
+//        Log.i(TAG, "Restarting Scan");
+//        BLEScanner.startScan(getApplicationContext());
+        super.onDestroy();
     }
 
     @Nullable
@@ -104,14 +87,10 @@ public class BLESend extends Service {
         return null;
     }
 
-    class BLEUpdateReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.i(TAG, "Bluetooth update request received");
-
-            while (blegatt.update()) ;
-        }
+    public void updateServer(){
+        while (blegatt.update()) ;
     }
+
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -78,6 +78,7 @@ public class BLEReceiver extends BroadcastReceiver {
                             if (MainActivity.currentDevice.getName() != null) {
                                 try {
                                     if (!BLESend.isRunning) {
+//                                        BLEScanner.stopScan(MainActivity.reference);
                                         context.startForegroundService(new Intent(context, BLESend.class));
                                     }
                                 } catch (IllegalStateException e) {

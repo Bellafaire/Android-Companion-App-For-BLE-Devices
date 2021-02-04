@@ -2,6 +2,7 @@ package com.example.smartwatchcompanionappv2;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.CalendarContract;
@@ -17,7 +18,7 @@ public class CalendarReader {
 
     //gets the calender information we want in a string format
     //data format is "title;description;startDate;startTime;endTime;eventLocation;"
-    public static String getDataFromEventTable() {
+    public static String getDataFromEventTable(Context context) {
         Log.v("calendar", "Obtaining calendar events");
         String ret = "";
 
@@ -61,7 +62,7 @@ public class CalendarReader {
 
         //create variables we'll need to query the calendar data
         Cursor cur = null;
-        ContentResolver cr = MainActivity.reference.getContentResolver();
+        ContentResolver cr = context.getContentResolver();
         String selection = "";
         String[] selectionArgs = new String[]{};
 
