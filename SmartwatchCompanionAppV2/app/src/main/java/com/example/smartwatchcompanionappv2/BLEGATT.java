@@ -13,7 +13,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
 import android.util.Log;
+import android.view.KeyEvent;
 
 import androidx.core.content.ContextCompat;
 
@@ -214,18 +216,50 @@ public class BLEGATT {
             if (characteristic.getUuid().equals(UUID.fromString(MainActivity.COMMAND_UUID))) {
                 String charVal = new String(characteristic.getValue(), StandardCharsets.US_ASCII);
                 Log.i(TAG, "Command characteristic changed to:" + charVal);
-                if (charVal.equals("/notifications")) {
-                    currentMessage = new MessageClipper(MainActivity.notificationData, mtuSize);
-                    currentUUID = MainActivity.COMMAND_UUID;
-                    Intent i = new Intent(BLE_UPDATE);
-                    con.sendBroadcast(i);
-                } else if (charVal.equals("/calendar")) {
-                    currentMessage = new MessageClipper(CalendarReader.getDataFromEventTable(con), mtuSize);
-                    currentUUID = MainActivity.COMMAND_UUID;
-                    Intent i = new Intent(BLE_UPDATE);
-                    con.sendBroadcast(i);
-                }else{
-                    Log.e(TAG, "Unrecognized command:" + charVal);
+                switch(charVal){
+                    case "/notifications": {
+                        currentMessage = new MessageClipper(MainActivity.notificationData, mtuSize);
+                        currentUUID = MainActivity.COMMAND_UUID;
+                        Intent i = new Intent(BLE_UPDATE);
+                        con.sendBroadcast(i);
+                        break;
+                    }
+                    case "/calendar": {
+                        currentMessage = new MessageClipper(CalendarReader.getDataFromEventTable(con), mtuSize);
+                        currentUUID = MainActivity.COMMAND_UUID;
+                        Intent i = new Intent(BLE_UPDATE);
+                        con.sendBroadcast(i);
+                        break;
+                    }
+                    case "/currentSong": {
+                        currentMessage = new MessageClipper(MainActivity.sReceiver.getSongData(), mtuSize);
+                        currentUUID = MainActivity.COMMAND_UUID;
+                        Intent i = new Intent(BLE_UPDATE);
+                        con.sendBroadcast(i);
+                        break;
+                    }
+                    case "/isPlaying": {
+                        currentMessage = new MessageClipper(MainActivity.sReceiver.isPlaying(), mtuSize);
+                        currentUUID = MainActivity.COMMAND_UUID;
+                        Intent i = new Intent(BLE_UPDATE);
+                        con.sendBroadcast(i);
+                        break;
+                    }
+                    case "/play":
+                        pressMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY);
+                        break;
+                    case "/pause":
+                        pressMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE);
+                        break;
+                    case "/nextSong":
+                        pressMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT);
+                        break;
+                    case "/lastSong":
+                        pressMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS);
+                        break;
+
+                    default:
+                        Log.e(TAG, "Unrecognized command:" + charVal);
                 }
             }
 
@@ -270,6 +304,13 @@ public class BLEGATT {
         }
     }
 
+    //just presses a given key on the device, this allows external devices to control the android device
+    public void pressMediaKey(int ke) {
+        //referenced from https://stackoverflow.com/questions/5129027/android-application-to-pause-resume-the-music-of-another-music-player-app
+        AudioManager mAudioManager = (AudioManager) MainActivity.reference.getSystemService(Context.AUDIO_SERVICE);
+        KeyEvent event = new KeyEvent(KeyEvent.ACTION_DOWN, ke);
+        mAudioManager.dispatchMediaKeyEvent(event);
+    }
 
     //returns a string representing the date and time
     public static String getDateAndTime() {
