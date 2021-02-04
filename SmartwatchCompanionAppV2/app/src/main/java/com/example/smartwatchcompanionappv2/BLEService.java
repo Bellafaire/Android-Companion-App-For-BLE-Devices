@@ -13,6 +13,9 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+/* Foreground service responsible for communication to the BLE device, we keep this in the foreground
+to allow the android device to always be communicating with the smartwatch when it appears. It could probably
+function as a background service but that is untested at this point in time.  */
 public class BLEService extends Service {
 
 
@@ -28,7 +31,7 @@ public class BLEService extends Service {
         reference = this;
         Log.i(TAG, "onCreate: Called");
 
-
+        //create the notification
         createNotificationChannel();
 
         Intent notificationIntent = new Intent(this.getApplicationContext(), BLEService.class);
@@ -37,15 +40,12 @@ public class BLEService extends Service {
 
         Notification notification = new NotificationCompat.Builder(this.getApplicationContext(), CHANNEL_ID)
                 .setContentTitle("ESP32 Smartwatch")
-                .setContentText("Device Connected")
+                .setContentText("BLE Gatt Server Is Running...")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(pendingIntent)
                 .build();
 
         startForeground(1, notification);
-
-
-
 
     }
 
@@ -53,7 +53,6 @@ public class BLEService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "Started BLE Handler Service with ID:" + startId);
         isRunning = true;
-
 
         MainActivity.updateStatusText();
 
@@ -70,8 +69,6 @@ public class BLEService extends Service {
 
         isRunning = false;
 
-//        Log.i(TAG, "Restarting Scan");
-//        BLEScanner.startScan(getApplicationContext());
         super.onDestroy();
     }
 
@@ -80,11 +77,6 @@ public class BLEService extends Service {
     public IBinder onBind(Intent intent) {
         return null;
     }
-
-    public void updateServer(){
-        while (blegatt.update()) ;
-    }
-
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

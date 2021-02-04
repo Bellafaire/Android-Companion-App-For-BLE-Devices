@@ -1,5 +1,8 @@
 package com.example.smartwatchcompanionappv2;
 
+
+//basically just splits up a string and gives one part of it at a time
+//good for use in the BLEGatt class
 public class MessageClipper {
     private String message = "";
     private int position = 0;

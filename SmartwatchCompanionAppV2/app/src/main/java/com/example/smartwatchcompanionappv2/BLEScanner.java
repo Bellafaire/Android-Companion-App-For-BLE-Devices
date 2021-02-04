@@ -17,6 +17,11 @@ import no.nordicsemi.android.support.v18.scanner.ScanFilter;
 import no.nordicsemi.android.support.v18.scanner.ScanResult;
 import no.nordicsemi.android.support.v18.scanner.ScanSettings;
 
+/* Initiates a pendingIntent scan in the background, allowing the android device to locate a BLE device without
+the screen even being on, uses the nordic semiconductor library Android Scanner Compat
+
+ For the most part this is just the example code provided by the library documentation on github
+ */
 public class BLEScanner {
 
     private static String TAG = "BLE";
@@ -52,14 +57,4 @@ public class BLEScanner {
         BluetoothLeScannerCompat scanner = BluetoothLeScannerCompat.getScanner();
         scanner.stopScan(con, pendingIntent);
     }
-
-    static ScanCallback scb = new ScanCallback() {
-        @Override
-        public void onScanResult(int callbackType, @NonNull ScanResult result) {
-            super.onScanResult(callbackType, result);
-            Log.d(TAG, "Found Device with name:" + result.getDevice().getName());
-        }
-    };
-
-
 }

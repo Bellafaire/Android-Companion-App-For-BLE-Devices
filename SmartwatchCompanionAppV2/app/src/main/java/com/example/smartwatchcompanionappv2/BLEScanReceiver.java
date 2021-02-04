@@ -14,9 +14,9 @@ import no.nordicsemi.android.support.v18.scanner.BluetoothLeScannerCompat;
 import no.nordicsemi.android.support.v18.scanner.ScanRecord;
 import no.nordicsemi.android.support.v18.scanner.ScanResult;
 
-/* Recieves call
-
- */
+/* Receives broadcasts that indicate a device has been found by the background BLE scan
+when a device is found it then starts a foreground service to handle the communication to the BLE
+device.  */
 public class BLEScanReceiver extends BroadcastReceiver {
     private static final String TAG = "BLEReceiver";
 
@@ -38,10 +38,6 @@ public class BLEScanReceiver extends BroadcastReceiver {
                         ArrayList<ScanResult> scanResults = (ArrayList<ScanResult>) o;
                         Log.v(TAG, "There are " + scanResults.size() + " results");
 
-//                        if (!mShouldScan) {
-//                            Log.d(TAG, "*** Unexpected device found: not scanning");
-//                        }
-
                         for (ScanResult result : scanResults) {
                             if (result.getScanRecord() == null) {
                                 Log.d(TAG, "getScanRecord is null");
@@ -58,15 +54,6 @@ public class BLEScanReceiver extends BroadcastReceiver {
                                     + " scan name: " + scanName
                                     + " device name: " + deviceName
                                     + " RSSI: " + result.getRssi() + "dBm");
-
-                            //we have the result now lets send it back to main activity so that it can
-                            //connect and communicate
-//                            try {
-//                                MainActivity.reference.blegatt.connect(result.getDevice());
-//                            } catch (NullPointerException e) {
-//                                e.printStackTrace();
-//                                Log.e(TAG, "Failed to connect to scan result");
-//                            }
 
                             MainActivity.currentDevice = result.getDevice();
                             if (MainActivity.currentDevice.getName() != null) {

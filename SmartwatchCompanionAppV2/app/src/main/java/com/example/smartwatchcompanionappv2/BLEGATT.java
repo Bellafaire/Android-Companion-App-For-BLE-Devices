@@ -27,30 +27,34 @@ import java.util.List;
 import java.util.UUID;
 
 public class BLEGATT {
+
+    //status variables
     static private boolean mConnected = false;
     private boolean readyToSend = false;
     static private String lastConnected = "";
     boolean writeInProgress = false;
     int mtuSize = 16;
-
-
-    public static final String BLE_UPDATE = "com.companionApp.BLE_UPDATE";
-
-    private static BLEUpdateReceiver nReceiver;
-
-    public MessageClipper currentMessage = new MessageClipper("");
     public String currentUUID = MainActivity.COMMAND_UUID;
 
+//constants
+    public static final String BLE_UPDATE = "com.companionApp.BLE_UPDATE";
     private static String TAG = "BLEGATT";
 
+    //receiver
+    private static BLEUpdateReceiver nReceiver;
+
+    //current message
+    public MessageClipper currentMessage = new MessageClipper("");
+
+    //reference and context
     private static BluetoothGatt bluetoothGatt;
     private Context con;
 
+    //constructor
     public BLEGATT(Context c) {
         con = c;
 
-
-        //try and create a new one, if the last block failed then we will have no problems
+        //attach the receiver that's used to update the remote BLE device
         try {
             //init notification receiver
             nReceiver = new BLEUpdateReceiver();
@@ -65,7 +69,7 @@ public class BLEGATT {
 
     }
 
-
+//returns string showing the status of the gatt server
     public static String getStatusText() {
         String ret = "";
         if (mConnected) {
@@ -79,25 +83,34 @@ public class BLEGATT {
         return ret;
     }
 
+    //connects to a bluetooth device and establishes a gatt server
     public void connect(BluetoothDevice sr) {
         Log.i(TAG, "attempting to connect to device: " + sr.getName() + " With Address " + sr.getAddress());
         bluetoothGatt = sr.connectGatt(con, true, gattCallback);
     }
 
-    public static boolean isConnected() {
-        return mConnected;
-    }
-
+    //updates the ble remote device with the current message.
+    //this is called from the broadcast receiver which is called by the broadcast receiver
+    //so that it can be triggered from within the gatt callbacks without binding the thread
+    //this function is designed to be called as the condition of a while loop, although its not used
+    //in that way any more
     public boolean update() {
+        //if we're not connected return false
         if(!mConnected){
             return false;
         }
+
+        //return true if a write is currently in progress
         if (writeInProgress) {
             return true;
         }
+
+        //if we have some message data to send and we're connected then send the data
         if (!currentMessage.messageComplete() && mConnected) {
             write(currentMessage.getNextMessage(), currentUUID);
             return true;
+
+            //if the message is complete then read the BLE characteristic (this indicates that the message transmission has been completed)
         }else if(currentMessage.messageComplete()){
             Log.i(TAG, "Reading BLE Characteristic to indicate end of transmission");
             BluetoothGattCharacteristic bgc = bluetoothGatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristic(UUID.fromString(currentUUID));
@@ -107,6 +120,7 @@ public class BLEGATT {
         return false;
     }
 
+    //writes a given string to a given UUID
     public boolean write(String str, String uuid) {
         writeInProgress = true;
         BluetoothGattCharacteristic bgc = bluetoothGatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristic(UUID.fromString(uuid));
@@ -124,6 +138,9 @@ public class BLEGATT {
     }
 
 
+    /* Bluetooth gatt callbacks, functionally everything important happens here
+
+     */
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onPhyUpdate(BluetoothGatt gatt, int txPhy, int rxPhy, int status) {
@@ -140,47 +157,50 @@ public class BLEGATT {
             super.onConnectionStateChange(gatt, status, newState);
             Log.d(TAG, "Connection State is now: " + newState);
 
+            //device is connected
             if (newState == BluetoothProfile.STATE_CONNECTED) {
 
+                //set connection state
                 mConnected = true;
                 lastConnected = getDateAndTime();
 
+                //request higher connection priority (increases service discovery speed)
                 bluetoothGatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH);
 //                bluetoothGatt.requestMtu(512);
 
+                //discover services that the device has available
+                gatt.discoverServices();
 
-                if (newState == BluetoothProfile.STATE_CONNECTED) {
-                    Log.d(TAG, "Connected to GATT server, discovering services...");
-                    gatt.discoverServices();
-                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    Log.d(TAG, "Disconnected from GATT server");
-                }
-
-
+                //device is disconnected
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                //update status variables
                 mConnected = false;
                 lastConnected = getDateAndTime();
 
                 Log.i(TAG, "Disconnected from GATT server.");
-                Log.i(TAG, "Closing Gatt Server");
 
-
-//                BLEScanner.startScan(MainActivity.reference);
-//                con.stopService(new Intent(con, BLESend.class));
             } else {
+                //this isn't actually possible but whatever
                 Log.i(TAG, "Other status change in BLE connection:" + newState);
             }
 
+            //update the status text on the home screen of the app.
             MainActivity.updateStatusText();
         }
 
         @Override
+        /* this callback is called when services are discovered, when we originally connect to the BLE device the android
+        phone knows nothing about what characteristics or services it has, this will only be called after discoverServices() has been
+        called and the services have been discovered
+         */
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
 
+            //log spam
             Log.i(TAG, gatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getUuid().toString());
             Log.i(TAG, "Obtained service");
 
+            //if any of the characteristics available are subscribeable then subscribe to them
             List<BluetoothGattCharacteristic> chars = gatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristics();
 
             for (int a = 0; a < chars.size(); a++) {
@@ -198,22 +218,35 @@ public class BLEGATT {
             super.onCharacteristicRead(gatt, characteristic, status);
         }
 
+
         @Override
+        //called after write operation is complete (will indicate whether failed or not)
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic
                 characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
 
+            //indicate we can write again
             writeInProgress = false;
+
+            //if success then try to send the next bit of data by sending a broadcast
+            //to the receiver and triggering an update.
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(TAG, "BLE Write success");
                 Intent i = new Intent(BLE_UPDATE);
                 con.sendBroadcast(i);
             } else {
+                //print scary warning message if something goes wrong
                 Log.e(TAG, "BLE Write failed");
             }
         }
 
         @Override
+        /*When the BLE device wants data from the android device it will change the value of its own characteristic
+        then notify the device, we use that notification to determine our next action
+
+        all the data transmission to the device basically happens here, we load up a MessageClipper object and
+        send a broadcast, the class will take care of the operation from there on out.
+         */
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic
                 characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
@@ -222,50 +255,69 @@ public class BLEGATT {
                 Log.i(TAG, "Command characteristic changed to:" + charVal);
                 switch(charVal){
                     case "/notifications": {
+                        //load message clipper with data, taking into account of MTU data
                         currentMessage = new MessageClipper(MainActivity.notificationData, mtuSize);
                         currentUUID = MainActivity.COMMAND_UUID;
+
+                        //send broadcast to begin process
                         Intent i = new Intent(BLE_UPDATE);
                         con.sendBroadcast(i);
                         break;
                     }
                     case "/calendar": {
+                        //load message clipper with data, taking into account of MTU data
                         currentMessage = new MessageClipper(CalendarReader.getDataFromEventTable(con), mtuSize);
                         currentUUID = MainActivity.COMMAND_UUID;
+
+                        //send broadcast to begin process
                         Intent i = new Intent(BLE_UPDATE);
                         con.sendBroadcast(i);
                         break;
                     }
                     case "/currentSong": {
+                        //load message clipper with data, taking into account of MTU data
                         currentMessage = new MessageClipper(MainActivity.sReceiver.getSongData(), mtuSize);
                         currentUUID = MainActivity.COMMAND_UUID;
+
+                        //send broadcast to begin process
                         Intent i = new Intent(BLE_UPDATE);
                         con.sendBroadcast(i);
                         break;
                     }
                     case "/time": {
+                        //load message clipper with data, taking into account of MTU data
                         currentMessage = new MessageClipper(getDateAndTime(), mtuSize);
                         currentUUID = MainActivity.COMMAND_UUID;
+
+                        //send broadcast to begin process
                         Intent i = new Intent(BLE_UPDATE);
                         con.sendBroadcast(i);
                         break;
                     }
                     case "/isPlaying": {
+                        //load message clipper with data, taking into account of MTU data
                         currentMessage = new MessageClipper(MainActivity.sReceiver.isPlaying(), mtuSize);
                         currentUUID = MainActivity.COMMAND_UUID;
+
+                        //send broadcast to begin process
                         Intent i = new Intent(BLE_UPDATE);
                         con.sendBroadcast(i);
                         break;
                     }
                     case "/play":
+                        //send keycode for play
                         pressMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY);
                         break;
                     case "/pause":
+                        //send keycode for play
                         pressMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE);
                         break;
                     case "/nextSong":
+                        //send keycode for play
                         pressMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT);
                         break;
                     case "/lastSong":
+                        //send keycode for play
                         pressMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS);
                         break;
 
@@ -300,6 +352,8 @@ public class BLEGATT {
         }
 
         @Override
+        //if a higher MTU is requested we want to update our message clipper size so that we
+        //can efficently use the newer size to send data more efficiently.
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
             super.onMtuChanged(gatt, mtu, status);
             Log.d(TAG, "MTU changed to: " + mtu);
@@ -307,6 +361,10 @@ public class BLEGATT {
         }
     };
 
+    /*
+    Broadcast receiver used to update the remote device, functionally everything calls here.
+    We use a broadcast receiver here to prevent binding up the thread responsible for the BLE
+    callbacks (I think? this was the only way I could get this thing to work properly)     */
     class BLEUpdateReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {

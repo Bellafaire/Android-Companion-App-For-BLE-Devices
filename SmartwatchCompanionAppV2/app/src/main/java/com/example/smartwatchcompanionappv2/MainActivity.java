@@ -46,18 +46,21 @@ import java.util.TimeZone;
 public class MainActivity extends AppCompatActivity {
 
     public static MainActivity reference;
+
+    //service and command UUIDs, these are what will ultimately be used by the BLE device to be advertised
+    //you can change these as you see fit just make sure that the device on the other side has a matching set of UUIDs
+    //otherwise the connection cannot be established.
     public static final String SERVICE_UUID = "5ac9bc5e-f8ba-48d4-8908-98b80b566e49";
     public static final String COMMAND_UUID = "bcca872f-1a3e-4491-b8ec-bfc93c5dd91a";
 
-
+    //current device found from scan
     public static BluetoothDevice currentDevice;
 
     public static String notificationData = "";
-
     private static String TAG = "Main";
-    public static String[] tabText = {"First Tab", "Second Tab"};
     public static TextView txtView;
 
+    //receivers used to obtain data from the android device
     private NotificationReceiver nReceiver;
     public static SpotifyReceiver sReceiver;
 
@@ -66,10 +69,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-
+        //begin background scan, this uses the nordic semiconductor Android Scanner Compat Library
         BLEScanner.startScan(this.getApplicationContext());
-//        blegatt = new BLEGATT(this.getApplicationContext(), (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE));
 
+        //whitelist in logcat
         try {
             int pid = android.os.Process.myUid();
             String whiteList = "logcat -P '" + pid + "'";
@@ -82,11 +85,11 @@ public class MainActivity extends AppCompatActivity {
         txtView.setText("Test");
         reference = this;
 
+        //request some permissions (There are better ways to do this)
         checkPermission(Manifest.permission.READ_CALENDAR, 10);
-//        checkPermission(Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE, 11);
+        checkPermission(Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE, 11);
         checkPermission(Manifest.permission.BLUETOOTH, 12);
         checkPermission(Manifest.permission.BLUETOOTH_ADMIN, 13);
-//        checkPermission(Manifest.permission.ACCESS_COARSE_LOCATION, 14);
         checkPermission(Manifest.permission.ACCESS_FINE_LOCATION, 15);
         checkPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION, 16);
         checkPermission(Manifest.permission.FOREGROUND_SERVICE, 16);
@@ -111,11 +114,12 @@ public class MainActivity extends AppCompatActivity {
         sfilter.addAction("com.spotify.music.queuechanged");
         registerReceiver(sReceiver, sfilter);
 
+        updateStatusText();
+
     }
 
     // Function to check and request permission
     public void checkPermission(String permission, int requestCode) {
-
         // Checking if permission is not granted
         if (ContextCompat.checkSelfPermission(
                 MainActivity.this,
@@ -135,44 +139,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static void updateStatusText() {
+        //get the current notifications by broadcasting an intent
+        Intent i = new Intent(NLService.GET_NOTIFICATION_INTENT);
+        i.putExtra("command", "list");
+        reference.sendBroadcast(i);
+
         try {
-        reference.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
+
+            reference.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
 
                     String statusText = BLEGATT.getStatusText()
                             + "\nNotification Data: \n" + notificationData
                             + "\n\nSpotify:\n" + sReceiver.getStatusText()
                             + "\n\nCalendar:\n" + CalendarReader.getDataFromEventTable(reference);
                     reference.txtView.setText(statusText);
-            }
-        });
+                }
+            });
         }catch(Exception e){
             String statusText = "Connecting";
+            reference.txtView.setText(statusText);
         }
     }
 
+    //this is a stupid function i need to remove, it just turns bluetooth off altogether
     public void sdt(View view) {
-//        Intent i = new Intent(BLESend.BLE_UPDATE);
-//        sendBroadcast(i);
         BluetoothAdapter.getDefaultAdapter().disable();
-//        BluetoothAdapter.getDefaultAdapter().enable();
     }
-
-    void sendDateAndTime() {
-    }
-
-    //sends intent to obtain notification data and updates the textview
-    //that the user sees along with the output data field. this version of the
-    //function CANNOT be called from a static context
-    public void updateText(View view) {
-        Log.v(TAG, "Updating Notification Text");
-        notificationData = BLEGATT.getDateAndTime() + "\n***";
-        Intent i = new Intent(NLService.GET_NOTIFICATION_INTENT);
-        i.putExtra("command", "list");
-        sendBroadcast(i);
-    }
-
 
     //receives the data from the NLService and updates fields in this class.
     class NotificationReceiver extends BroadcastReceiver {
