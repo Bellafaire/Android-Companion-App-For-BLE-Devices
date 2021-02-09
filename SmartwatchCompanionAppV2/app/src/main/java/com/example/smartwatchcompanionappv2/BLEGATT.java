@@ -172,11 +172,17 @@ public class BLEGATT {
 
                 gatt.requestMtu(256);
 
+                //indicate we can write again
+                writeInProgress = false;
+
                 //device is disconnected
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 //update status variables
                 mConnected = false;
                 lastConnected = getDateAndTime();
+
+                //indicate we can write again
+                writeInProgress = false;
 
                 Log.i(TAG, "Disconnected from GATT server.");
 
