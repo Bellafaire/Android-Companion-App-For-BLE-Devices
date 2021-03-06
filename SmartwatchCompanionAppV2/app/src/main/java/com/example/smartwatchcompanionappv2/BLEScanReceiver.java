@@ -55,17 +55,16 @@ public class BLEScanReceiver extends BroadcastReceiver {
                                     + " device name: " + deviceName
                                     + " RSSI: " + result.getRssi() + "dBm");
 
-                            MainActivity.currentDevice = result.getDevice();
-                            if (MainActivity.currentDevice.getName() != null) {
                                 try {
                                     if (!BLEService.isRunning) {
 //                                        BLEScanner.stopScan(MainActivity.reference);
+                                        MainActivity.currentDevice = result.getDevice();
                                         context.startForegroundService(new Intent(context, BLEService.class));
                                     }
                                 } catch (IllegalStateException e) {
                                     Log.e(TAG, "Could not register service");
                                 }
-                            }
+
                         }
                     } else {
                         // Received something, but not a list of scan results...
