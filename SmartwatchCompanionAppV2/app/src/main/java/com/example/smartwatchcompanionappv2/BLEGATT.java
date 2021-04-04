@@ -170,7 +170,6 @@ public class BLEGATT {
                 //discover services that the device has available
                 gatt.discoverServices();
 
-                gatt.requestMtu(256);
 
                 //indicate we can write again
                 writeInProgress = false;
@@ -216,6 +215,11 @@ public class BLEGATT {
                     gatt.setCharacteristicNotification(chars.get(a), true);
                     Log.i(TAG, "Subscribed to characteristic: " + new String(chars.get(a).getUuid().toString()));
                 }
+            }
+
+            //now that the services are discoverred lets see if we can request a larger MTU for quicker data transmission
+            if(mtuSize < 256) {
+                gatt.requestMtu(256);
             }
 
         }
