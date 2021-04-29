@@ -13,12 +13,26 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.LightingColorFilter;
+import android.graphics.Paint;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
+import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
 
 import androidx.core.content.ContextCompat;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -97,19 +111,22 @@ public class BLEGATT {
     public boolean update() {
         //if we're not connected return false
         if (!mConnected) {
+            Log.e(TAG, "not connected cannot update");
             return false;
         }
 
         //return true if a write is currently in progress
         if (writeInProgress) {
-            return true;
+            Log.e(TAG, "Write in progress, cannot write");
+            return false;
         }
 
         //if we have some message data to send and we're connected then send the data
         if (!currentMessage.messageComplete() && mConnected) {
-            write(currentMessage.getNextMessage(), currentUUID);
+            String str = currentMessage.getNextMessage();
+            write(str, currentUUID);
+            Log.d(TAG, "Wrote data");
             return true;
-
             //if the message is complete then read the BLE characteristic (this indicates that the message transmission has been completed)
         } else if (currentMessage.messageComplete()) {
             Log.i(TAG, "Reading BLE Characteristic to indicate end of transmission");
@@ -125,6 +142,12 @@ public class BLEGATT {
         writeInProgress = true;
         BluetoothGattCharacteristic bgc = bluetoothGatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristic(UUID.fromString(uuid));
         if (bgc != null) {
+            if (str.equals("")) {
+                bgc = bluetoothGatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristic(UUID.fromString(currentUUID));
+                bluetoothGatt.readCharacteristic(bgc);
+                writeInProgress = false;
+                return true;
+            }
             bgc.setValue(str);
             if (bluetoothGatt.writeCharacteristic(bgc)) {
                 Log.d(TAG, "transmitted:" + str);
@@ -218,7 +241,7 @@ public class BLEGATT {
             }
 
             //now that the services are discoverred lets see if we can request a larger MTU for quicker data transmission
-            if(mtuSize < 256) {
+            if (mtuSize < 128) {
                 gatt.requestMtu(256);
             }
 
@@ -228,6 +251,9 @@ public class BLEGATT {
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic
                 characteristic, int status) {
             super.onCharacteristicRead(gatt, characteristic, status);
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "Failed to read characteristic");
+            }
         }
 
 
@@ -268,10 +294,10 @@ public class BLEGATT {
                 switch (charVal) {
                     case "/notifications": {
                         //load message clipper with data, taking into account of MTU data
-                        if(MainActivity.notificationData.length() <2) {
+                        if (MainActivity.notificationData.length() < 2) {
                             currentMessage = new MessageClipper("   ", mtuSize);
                             currentUUID = MainActivity.COMMAND_UUID;
-                        }else{
+                        } else {
                             Log.v(TAG, "Sending Notification data: \n" + MainActivity.notificationData);
                             currentMessage = new MessageClipper(MainActivity.notificationData, mtuSize);
                             currentUUID = MainActivity.COMMAND_UUID;
@@ -383,7 +409,45 @@ public class BLEGATT {
                         break;
                     }
                     default:
-                        Log.e(TAG, "Unrecognized command:" + charVal);
+                        if (charVal.contains("/icon:")) {
+                            // https://stackoverflow.com/questions/17985500/how-can-i-get-the-applications-icon-from-the-package-name/27450469
+                            try {
+                                //grab the icon of the requested app
+                                String appName = charVal.substring("/icon:".length()).toLowerCase();
+                                String appPackage = "";
+
+                                Log.d(TAG, "Attempting to find app icon for:" + appName);
+
+                                PackageManager pm = con.getPackageManager();
+                                List<ApplicationInfo> appList = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+                                for (int a = 0; a < appList.size(); a++) {
+                                    Log.v(TAG, "App:" + pm.getApplicationLabel(appList.get(a)).toString());
+
+                                    if (pm.getApplicationLabel(appList.get(a)).toString().toLowerCase().contains(appName)) {
+                                        appPackage = appList.get(a).packageName;
+                                        Log.d(TAG, "Found:" + appPackage);
+                                        break;
+                                    }
+                                }
+
+                                //get the icon and convert it to a string that can be transmitted
+                                Drawable icon = con.getPackageManager().getApplicationIcon(appPackage);
+                                Bitmap img = drawableToBitmap(icon);
+                                String imgstr = BitMapToString(img);
+
+                                //send the string to the device
+                                currentMessage = new MessageClipper(imgstr, mtuSize);
+                                currentUUID = MainActivity.COMMAND_UUID;
+                                //send broadcast to begin process
+                                Intent i = new Intent(BLE_UPDATE);
+                                con.sendBroadcast(i);
+                            } catch (PackageManager.NameNotFoundException e) {
+                                e.getMessage();
+                            }
+                        } else {
+                            Log.e(TAG, "Unrecognized command:" + charVal);
+                        }
+                        writeInProgress = false;
                 }
             }
 
@@ -419,8 +483,85 @@ public class BLEGATT {
             super.onMtuChanged(gatt, mtu, status);
             Log.d(TAG, "MTU changed to: " + mtu);
             mtuSize = mtu;
+
+            //just keep requesting larger MTU sizes until it stops us
+            gatt.requestMtu(mtuSize*2);
         }
     };
+
+    /*    https://stackoverflow.com/questions/4989182/converting-java-bitmap-to-byte-array     */
+    public String BitMapToString(Bitmap bitmap) {
+        int size = bitmap.getRowBytes() * bitmap.getHeight();
+        Log.d(TAG, "Image Size: " + size);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(size);
+        bitmap.copyPixelsToBuffer(byteBuffer);
+        byte[] byteArray = byteBuffer.array();
+//        Log.v(TAG, "Image Data:" + Base64.encodeToString(byteArray, Base64.DEFAULT | Base64.NO_WRAP | Base64.NO_PADDING | Base64.CRLF) );
+        String str = "";
+        for (int a = 0; a < size; a += 2) {
+            short pix = (short)((byteArray[a] << 8) | (byteArray[a + 1]));
+//            pix = (short)(((r >> 11) | (g) | (b << 11)));
+            byteArray[a] = (byte) (pix >> 8);
+            byteArray[a + 1] = (byte) (pix & 0x00FF);
+        }
+
+        str = Base64.encodeToString(byteArray, Base64.DEFAULT | Base64.NO_WRAP | Base64.NO_PADDING | Base64.CRLF | Base64.NO_CLOSE);
+
+        Log.d(TAG, "Image string length: " + str.length());
+        Log.v(TAG, "Image String:" + str);
+
+        return str;
+    }
+
+
+    /* gets the app package from the application name
+    this code comes directly from stackoverflow https://stackoverflow.com/questions/41918056/get-package-name-of-another-app-by-app-name     */
+    public String getPackNameByAppName(String name) {
+        PackageManager pm = con.getPackageManager();
+        List<ApplicationInfo> l = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+        String packName = "";
+        for (ApplicationInfo ai : l) {
+            String n = (String) pm.getApplicationLabel(ai);
+            if (n.contains(name) || name.contains(n)) {
+                packName = ai.packageName;
+            }
+        }
+
+        return packName;
+    }
+
+    /*Converts drawable object to a bitmap so that we can transmit it.
+    this code comes directly from stackoverflow
+    https://stackoverflow.com/questions/3035692/how-to-convert-a-drawable-to-a-bitmap
+    //modified to only return 32x32 images in RGB format.
+      */
+    public static Bitmap drawableToBitmap(Drawable drawable) {
+        Bitmap bitmap = null;
+
+        if (drawable instanceof BitmapDrawable) {
+            BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+            if (bitmapDrawable.getBitmap() != null) {
+                return bitmapDrawable.getBitmap();
+            }
+        }
+
+        if (drawable.getIntrinsicWidth() <= 0 || drawable.getIntrinsicHeight() <= 0) {
+            bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.RGB_565); // Single color bitmap will be created of 1x1 pixel
+        } else {
+            bitmap = Bitmap.createBitmap(32, 32, Bitmap.Config.RGB_565);
+        }
+
+        Log.d(TAG, "Image Size - Width: " + bitmap.getWidth() + " Height: " + bitmap.getHeight());
+
+        Canvas canvas = new Canvas(bitmap);
+        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawable.draw(canvas);
+
+
+
+        return bitmap;
+    }
+
 
     /*
     Broadcast receiver used to update the remote device, functionally everything calls here.
