@@ -20,15 +20,18 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
+import android.graphics.ColorSpace;
 import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
+import android.os.Build;
 import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
 import java.io.ByteArrayOutputStream;
@@ -152,7 +155,8 @@ public class BLEGATT {
             if (bluetoothGatt.writeCharacteristic(bgc)) {
                 Log.d(TAG, "transmitted:" + str);
             } else {
-                Log.e(TAG, "Failed to transmit data");
+//                Log.e(TAG, "Failed to transmit data, retrying");
+//                write(str, uuid);
             }
         } else {
             Log.e(TAG, "Characteristic is null");
@@ -278,6 +282,7 @@ public class BLEGATT {
             }
         }
 
+        @RequiresApi(api = Build.VERSION_CODES.Q)
         @Override
         /*When the BLE device wants data from the android device it will change the value of its own characteristic
         then notify the device, we use that notification to determine our next action
@@ -449,6 +454,7 @@ public class BLEGATT {
                         }
                         writeInProgress = false;
                 }
+                writeInProgress = false;
             }
 
         }
@@ -484,28 +490,38 @@ public class BLEGATT {
             Log.d(TAG, "MTU changed to: " + mtu);
             mtuSize = mtu;
 
-            //just keep requesting larger MTU sizes until it stops us
-            gatt.requestMtu(mtuSize*2);
         }
     };
 
     /*    https://stackoverflow.com/questions/4989182/converting-java-bitmap-to-byte-array     */
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     public String BitMapToString(Bitmap bitmap) {
-        int size = bitmap.getRowBytes() * bitmap.getHeight();
+        int size = bitmap.getWidth() * 2 * bitmap.getHeight();
+
         Log.d(TAG, "Image Size: " + size);
-        ByteBuffer byteBuffer = ByteBuffer.allocate(size);
-        bitmap.copyPixelsToBuffer(byteBuffer);
-        byte[] byteArray = byteBuffer.array();
-//        Log.v(TAG, "Image Data:" + Base64.encodeToString(byteArray, Base64.DEFAULT | Base64.NO_WRAP | Base64.NO_PADDING | Base64.CRLF) );
+
+        byte[] outputArray = new byte[size];
         String str = "";
-        for (int a = 0; a < size; a += 2) {
-            short pix = (short)((byteArray[a] << 8) | (byteArray[a + 1]));
-//            pix = (short)(((r >> 11) | (g) | (b << 11)));
-            byteArray[a] = (byte) (pix >> 8);
-            byteArray[a + 1] = (byte) (pix & 0x00FF);
+
+        int a = 0;
+        for (int y = 0; y < 32; y++) {
+            for (int x = 0; x < 32; x++) {
+                Color pixel = bitmap.getColor(x, y);
+                int val = pixel.toArgb();
+                int b = ((val & 0x00FF0000) >> 19);
+                int g = ((val & 0x0000FF00) >> 10);
+                int r = ((val & 0x000000FF) >> 3);
+                int pv = ((b << 11) & 0xF800) | ((g << 5) & 0x07E0) | (r & 0x001F);
+                outputArray[a] = (byte) ((pv >> 8) & 0x00FF);
+                outputArray[a + 1] = (byte) (pv & 0x00FF);
+                a += 2;
+
+            }
         }
 
-        str = Base64.encodeToString(byteArray, Base64.DEFAULT | Base64.NO_WRAP | Base64.NO_PADDING | Base64.CRLF | Base64.NO_CLOSE);
+//        str = Base64.encodeToString(byteArray, Base64.DEFAULT | Base64.NO_WRAP | Base64.NO_PADDING | Base64.CRLF | Base64.NO_CLOSE);
+        str = Base64.encodeToString(outputArray, Base64.NO_WRAP | Base64.NO_CLOSE | Base64.CRLF);
+
 
         Log.d(TAG, "Image string length: " + str.length());
         Log.v(TAG, "Image String:" + str);
@@ -538,17 +554,18 @@ public class BLEGATT {
     public static Bitmap drawableToBitmap(Drawable drawable) {
         Bitmap bitmap = null;
 
-        if (drawable instanceof BitmapDrawable) {
-            BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
-            if (bitmapDrawable.getBitmap() != null) {
-                return bitmapDrawable.getBitmap();
-            }
-        }
+//        if (drawable instanceof BitmapDrawable) {
+//            BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+//            if (bitmapDrawable.getBitmap() != null) {
+//                return bitmapDrawable.getBitmap();
+//            }
+//        }
 
         if (drawable.getIntrinsicWidth() <= 0 || drawable.getIntrinsicHeight() <= 0) {
-            bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.RGB_565); // Single color bitmap will be created of 1x1 pixel
+            bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888); // Single color bitmap will be created of 1x1 pixel
+
         } else {
-            bitmap = Bitmap.createBitmap(32, 32, Bitmap.Config.RGB_565);
+            bitmap = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888);
         }
 
         Log.d(TAG, "Image Size - Width: " + bitmap.getWidth() + " Height: " + bitmap.getHeight());
@@ -557,6 +574,11 @@ public class BLEGATT {
         drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
         drawable.draw(canvas);
 
+        if (bitmap.getWidth() > 32 || bitmap.getHeight() > 32) {
+            Log.e(TAG, "Bitmap size is " + bitmap.getWidth() + "x" + bitmap.getHeight());
+        } else {
+            Log.d(TAG, "Bitmap size is " + bitmap.getWidth() + "x" + bitmap.getHeight());
+        }
 
 
         return bitmap;
