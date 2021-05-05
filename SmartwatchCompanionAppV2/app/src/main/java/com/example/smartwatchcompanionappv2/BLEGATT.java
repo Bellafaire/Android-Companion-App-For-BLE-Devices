@@ -438,7 +438,7 @@ public class BLEGATT {
                                 //get the icon and convert it to a string that can be transmitted
                                 Drawable icon = con.getPackageManager().getApplicationIcon(appPackage);
                                 Bitmap img = drawableToBitmap(icon);
-                                String imgstr = BitMapToString(img);
+                                String imgstr = bitMapToString(img);
 
                                 //send the string to the device
                                 currentMessage = new MessageClipper(imgstr, mtuSize);
@@ -493,15 +493,16 @@ public class BLEGATT {
         }
     };
 
-    /*    https://stackoverflow.com/questions/4989182/converting-java-bitmap-to-byte-array     */
     @RequiresApi(api = Build.VERSION_CODES.Q)
-    public String BitMapToString(Bitmap bitmap) {
+    public String bitMapToString(Bitmap bitmap) {
         int size = bitmap.getWidth() * 2 * bitmap.getHeight();
 
         Log.d(TAG, "Image Size: " + size);
 
-        byte[] outputArray = new byte[size];
+        byte[] outputArray = new byte[size + 2];
         String str = "";
+
+        short checksum = 0;
 
         int a = 0;
         for (int y = 0; y < 32; y++) {
@@ -511,19 +512,25 @@ public class BLEGATT {
                 int b = ((val & 0x00FF0000) >> 19);
                 int g = ((val & 0x0000FF00) >> 10);
                 int r = ((val & 0x000000FF) >> 3);
-                int pv = ((b << 11) & 0xF800) | ((g << 5) & 0x07E0) | (r & 0x001F);
+                int pv = 0xFFFF & ((r << 11) & 0xF800) | ((g << 5) & 0x07E0) | (b & 0x001F);
                 outputArray[a] = (byte) ((pv >> 8) & 0x00FF);
                 outputArray[a + 1] = (byte) (pv & 0x00FF);
-                a += 2;
 
+                checksum += (outputArray[a] << 8) | outputArray[a + 1];
+
+                a += 2;
             }
         }
 
-//        str = Base64.encodeToString(byteArray, Base64.DEFAULT | Base64.NO_WRAP | Base64.NO_PADDING | Base64.CRLF | Base64.NO_CLOSE);
-        str = Base64.encodeToString(outputArray, Base64.NO_WRAP | Base64.NO_CLOSE | Base64.CRLF);
+        outputArray[2048] = (byte) ((checksum >> 8) & 0xFF);
+        outputArray[2049] = (byte) ((checksum) & 0xFF);
+
+//        str = Base64.encodeToString(outputArray,  Base64.DEFAULT);
+        str = Base64.encodeToString(outputArray, Base64.DEFAULT | Base64.NO_WRAP | Base64.NO_CLOSE |Base64.CRLF);
 
 
         Log.d(TAG, "Image string length: " + str.length());
+        Log.d(TAG, "Image checksum: " + checksum);
         Log.v(TAG, "Image String:" + str);
 
         return str;

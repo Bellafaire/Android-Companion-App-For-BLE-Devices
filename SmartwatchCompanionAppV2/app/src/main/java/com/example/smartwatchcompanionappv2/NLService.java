@@ -60,7 +60,7 @@ public class NLService extends NotificationListenerService {
         i.putExtra("notification_event", "");
         sendBroadcast(i);
 
-MainActivity.updateNotifications();
+        MainActivity.updateNotifications();
     }
 
     @Override
@@ -94,36 +94,35 @@ MainActivity.updateNotifications();
                 for (StatusBarNotification sbn : NLService.this.getActiveNotifications()) {
                     Intent i2 = new Intent(NOTIFICATION_ACTION);
                     //reference for pulling information out of notification objects http://gmariotti.blogspot.com/2013/11/notificationlistenerservice-and-kitkat.html
-                    if (!getAppNameFromPkgName(context, sbn.getPackageName()).equals("Spotify")) {
+                    try {
+                        //parse the data out of the statusbar notification object and format it into a string
+                        //format appName,Title;ExtraText,ExtraInfoText,ExtraSubText,ExtraTitle;Description;
+                        String data = ifNotNull(getAppNameFromPkgName(context, sbn.getPackageName())) + "," //this comma is a feature
+                                + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_TITLE)).replace("\n", "").replace(";", ",") + ";"
+                                + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_TEXT)).replace("\n", "").replace(";", ",") + ";"
+                                + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_INFO_TEXT)).replace("\n", "").replace(";", ",") + ";"
+                                + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_SUB_TEXT)).replace("\n", "").replace(";", ",") + ";"
+                                + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_TITLE_BIG)).replace("\n", "").replace(";", ",") + ";";
+
+                        //remove non-ascii characters, i guess if you want emoji on your other device then keep this
+                        data = data.replaceAll("[^\\p{ASCII}]", "");
                         try {
-                            //parse the data out of the statusbar notification object and format it into a string
-                            //format appName,Title;ExtraText,ExtraInfoText,ExtraSubText,ExtraTitle;Description;
-                            String data = ifNotNull(getAppNameFromPkgName(context, sbn.getPackageName())) + "," //this comma is a feature
-                                    + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_TITLE)).replace("\n", "").replace(";", ",") + ";"
-                                    + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_TEXT)).replace("\n", "").replace(";", ",") + ";"
-                                    + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_INFO_TEXT)).replace("\n", "").replace(";", ",") + ";"
-                                    + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_SUB_TEXT)).replace("\n", "").replace(";", ",") + ";"
-                                    + ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_TITLE_BIG)).replace("\n", "").replace(";", ",") + ";";
-
-                            //remove non-ascii characters, i guess if you want emoji on your other device then keep this
-                            data = data.replaceAll("[^\\p{ASCII}]", "");
-                            try {
-                                if (sbn.getNotification().category.equals(Notification.CATEGORY_EMAIL)) {
-                                    data += shortenString(sbn.getNotification().extras.getCharSequence("android.bigText")).replace("\n", "").replace(";", ",");
-                                } else if (sbn.getNotification().category.equals(Notification.CATEGORY_MESSAGE)) {
-                                    data += ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_MESSAGES));
-                                }
-                            } catch (Exception e) {
-
-                            }
-                            if (!data.contains("ESP32 Smartwatch Companion App")) {
-                                i2.putExtra("notification_event", data + "\n");
-                                sendBroadcast(i2);
+                            if (sbn.getNotification().category.equals(Notification.CATEGORY_EMAIL)) {
+                                data += shortenString(sbn.getNotification().extras.getCharSequence("android.bigText")).replace("\n", "").replace(";", ",");
+                            } else if (sbn.getNotification().category.equals(Notification.CATEGORY_MESSAGE)) {
+                                data += ifNotNull(sbn.getNotification().extras.getString(Notification.EXTRA_MESSAGES));
                             }
                         } catch (Exception e) {
-                            Log.e("inform", "Could not parse data for: " + getAppNameFromPkgName(context, sbn.getPackageName()) + " due to " + e.getMessage());
+
                         }
+                        if (!data.contains("ESP32 Smartwatch Companion App")) {
+                            i2.putExtra("notification_event", data + "\n");
+                            sendBroadcast(i2);
+                        }
+                    } catch (Exception e) {
+                        Log.e("inform", "Could not parse data for: " + getAppNameFromPkgName(context, sbn.getPackageName()) + " due to " + e.getMessage());
                     }
+
                 }
                 Intent i3 = new Intent(NOTIFICATION_ACTION);
                 i3.putExtra("notification_event", "");
