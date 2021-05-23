@@ -10,38 +10,27 @@ Background operation of BLE Library with Android 8 - Request for Example: https:
  */
 
 import android.Manifest;
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
-import android.os.Handler;
-import android.provider.CalendarContract;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.GregorianCalendar;
-import java.util.TimeZone;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -53,12 +42,16 @@ public class MainActivity extends AppCompatActivity {
     public static final String SERVICE_UUID = "5ac9bc5e-f8ba-48d4-8908-98b80b566e49";
     public static final String COMMAND_UUID = "bcca872f-1a3e-4491-b8ec-bfc93c5dd91a";
 
+    public static final String NOTIFICATION_ERROR_STRING = "Notification access must be granted to access notification data. Please grant notification access in the app then reconnect your bluetooth device";
+
     //current device found from scan
     public static BluetoothDevice currentDevice;
 
     public static String notificationData = "";
     private static String TAG = "Main";
     public static TextView txtView;
+    public static Button notificationAccessButton;
+    public static boolean notificationAccessGranted = false;
 
     //receivers used to obtain data from the android device
     private NotificationReceiver nReceiver;
@@ -91,8 +84,19 @@ public class MainActivity extends AppCompatActivity {
         checkPermission(Manifest.permission.BLUETOOTH_ADMIN, 13);
         checkPermission(Manifest.permission.ACCESS_FINE_LOCATION, 15);
         checkPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION, 16);
-        checkPermission(Manifest.permission.FOREGROUND_SERVICE, 16);
+        checkPermission(Manifest.permission.FOREGROUND_SERVICE, 17);
+        checkPermission(Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE, 18);
 
+        notificationAccessButton = (Button) findViewById(R.id.notificationPermissionButton);
+
+        notificationAccessGranted = isNotificationServiceRunning();
+        if (notificationAccessGranted) {
+            notificationAccessButton.setVisibility(View.INVISIBLE);
+            Log.d(TAG, "Notification Access Granted");
+        }else{
+            Log.e(TAG, "Notification Access NOT Granted");
+            notificationData = NOTIFICATION_ERROR_STRING;
+        }
 
         //init notification receiver
         nReceiver = new NotificationReceiver();
@@ -115,6 +119,15 @@ public class MainActivity extends AppCompatActivity {
 
         updateStatusText();
 
+    }
+
+    //https://stackoverflow.com/questions/22663359/redirect-to-notification-access-settings
+    public boolean isNotificationServiceRunning() {
+        ContentResolver contentResolver = getContentResolver();
+        String enabledNotificationListeners =
+                Settings.Secure.getString(contentResolver, "enabled_notification_listeners");
+        String packageName = getPackageName();
+        return enabledNotificationListeners != null && enabledNotificationListeners.contains(packageName);
     }
 
     // Function to check and request permission
@@ -151,6 +164,21 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void run() {
 
+                    if (notificationAccessGranted) {
+                        notificationAccessButton.setVisibility(View.INVISIBLE);
+                    }else{
+                        notificationAccessGranted = reference.isNotificationServiceRunning();
+                        //notifications access has just been granted, update the notification data so that it reflects the current notifications.
+                        //otherwise print info to inform the user of the issue.
+                        if(notificationAccessGranted){
+                            reference.updateNotifications();
+                        }else {
+                            notificationData = NOTIFICATION_ERROR_STRING;
+                            notificationAccessButton.setVisibility(View.VISIBLE);
+                        }
+
+                    }
+
                     String statusText = BLEGATT.getStatusText()
                             + "\nNotification Data: \n" + notificationData
                             + "\n\nSpotify:\n" + sReceiver.getStatusText()
@@ -160,7 +188,6 @@ public class MainActivity extends AppCompatActivity {
             });
         } catch (Exception e) {
             String statusText = "Connecting";
-            reference.txtView.setText(statusText);
         }
     }
 
