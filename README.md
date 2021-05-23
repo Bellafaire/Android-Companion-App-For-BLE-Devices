@@ -19,14 +19,15 @@ Below is a list of commands that can be issued and their functionality.
 The initial connection can be lengthy sometimes, however once it is connected the device will automatically reconnect as long as the app is active. 
 
 ```c
-    sendBLE("/notifications"); //gets current android notifications as a string format "appName,Title;ExtraText,ExtraInfoText,ExtraSubText,ExtraTitle;Description;"
-    sendBLE("/isPlaying"); //returns "true" or "false" indicating whether spotify is playing on the android device
-    sendBLE("/currentSong"); //returns the current song name and artist playing on spotify as one string
-    sendBLE("/play"); //hits the media play button on the android device
-    sendBLE("/pause"); //hits the media pause button on the android device
-    sendBLE("/nextSong"); //hits the media next song button on the android device
-    sendBLE("/lastSong"); //hits the media previous song button on the android device
-    sendBLE("/calender"); // returns a string of calender events for the next 24 hours in format "title;description;startDate;startTime;endTime;eventLocation;"
+      /notifications - gets current android notifications as a string format "appName,Title;ExtraText,ExtraInfoText,ExtraSubText,ExtraTitle;Description;"
+      /calendar - returns a string of calender events for the next 24 hours in format "title;description;startDate;startTime;endTime;eventLocation;"
+      /time - returns a string representing the time
+      /isPlaying - returns "true" or "false" indicating whether spotify is playing on the android device
+      /currentSong - returns the current song name and artist playing on spotify as one string
+      /play - hits the media play button on the android device
+      /pause - hits the media pause button on the android device
+      /nextSong - hits the media next song button on the android device
+      /lastSong - hits the media previous song button on the android device
 ```
 The example sketch provided in the repo will connect to the Android app and print the current notifications present on the notification bar to the serial terminal.
 If everything's configured correctly the output should look like this: 
