@@ -17,42 +17,63 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 ******************************************************************************/
+
+//library imports
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
-#include <BLE2902.h>
 
+/*******************************************************************
+                              DEBUG
+ *******************************************************************/
+//prints debug information to the serial terminal when declared
+//#define DEBUG
+
+#ifdef DEBUG
+#define printDebug(a) Serial.println(a)
+#endif
+#ifndef DEBUG
+#define printDebug(a)
+#endif
+
+
+
+/********************************************************************
+                           BLE Globals
+ ********************************************************************/
 //variables and defines used by BLEServer.ino
-String currentDataField;
+static String currentDataField;
+static boolean blockingCommandInProgress = false;
+static String* bleReturnString;
 #define SERVICE_UUID        "5ac9bc5e-f8ba-48d4-8908-98b80b566e49"
 #define COMMAND_UUID        "bcca872f-1a3e-4491-b8ec-bfc93c5dd91a"
 BLECharacteristic *commandCharacteristic;
+BLEService *pService;
+BLEServer *pServer;
+TaskHandle_t xBLE = NULL;
 
 //indicates connection state to the android device
-boolean connected = false;
+static boolean connected = false;
 
 //indiciates whether or not a operation is currently in progress
-boolean operationInProgress = false;
-
-//function signitures
-String sendBLE(String command);
-void addData(String data);  //adds data to a current string, used within BLEServer.ino
-void initBLE(); //initializes the BLE connection by starting advertising.
-
-
-
+static boolean operationInProgress = false;
 
 void addData(String data) {
-//  Serial.println("Adding:" + data);
+  printDebug("Received:" + data);
   currentDataField += data;
+  if (!blockingCommandInProgress) {
+    *bleReturnString = currentDataField;
+  }
 }
 
 class cb : public BLEServerCallbacks    {
     void onConnect(BLEServer* pServer) {
       connected = true;
+      printDebug("BLE Device Connected");
     }
     void onDisconnect(BLEServer* pServer) {
       connected = false;
+      printDebug("BLE Device Disconnected");
     }
 };
 
@@ -64,13 +85,14 @@ class ccb : public BLECharacteristicCallbacks  {
     void onRead(BLECharacteristic* pCharacteristic) {
       //      Serial.println("Characteristic Read");
       operationInProgress = false;
+      printDebug("Complete Received String:\n" + currentDataField);
     }
 };
 
 void initBLE() {
   BLEDevice::init("ESP32 Smartwatch");
-  BLEServer *pServer = BLEDevice::createServer();
-  BLEService *pService = pServer->createService(SERVICE_UUID);
+  pServer = BLEDevice::createServer();
+  pService = pServer->createService(SERVICE_UUID);
 
   //define the characteristics and how they can be used
   commandCharacteristic = pService->createCharacteristic(
@@ -89,8 +111,10 @@ void initBLE() {
   pServer->setCallbacks(new cb());
 
   pService->start();
+  startBLEAdvertising();
+}
 
-
+void startBLEAdvertising() {
   // BLEAdvertising *pAdvertising = pServer->getAdvertising();  // this still is working for backward compatibility
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
@@ -100,17 +124,65 @@ void initBLE() {
   BLEDevice::startAdvertising();
 }
 
-String sendBLE(String command) {
-  operationInProgress = true;
-  commandCharacteristic->setValue(command.c_str());
-  commandCharacteristic->notify();
+//sends BLE command and returns data to a specific string. This function can be blocking (if you need it to perform a specific action) or non-blocking
+//if you don't mind the data being used as its received.
+boolean sendBLE(String command, String* returnString, boolean blocking) {
+  if (connected && !operationInProgress) {
+    blockingCommandInProgress = blocking;
+    operationInProgress = true;
+    commandCharacteristic->setValue(command.c_str());
+    commandCharacteristic->notify();
 
-  currentDataField = "";
+    printDebug("Sent BLE Command: " + command);
 
-  unsigned long startTime = millis();
-  while (operationInProgress && (startTime + 2000 > millis()))
-    delay(25);
+    if (blockingCommandInProgress) {
 
-  return currentDataField;
+      currentDataField = "";
 
+      unsigned long startTime = millis();
+      while (operationInProgress && (startTime + 2000 > millis()))
+        delay(25);
+
+      operationInProgress = false;
+      if (currentDataField.length() == 0) {
+        return false;
+      }  else {
+        *returnString = currentDataField;
+        return true;
+      }
+
+    } else {
+      currentDataField = "";
+      bleReturnString = returnString;
+      *returnString = currentDataField;
+
+      unsigned long startTime = millis();
+      while ((currentDataField.length() == 0) && (startTime + 1000 > millis()))
+        delay(25);
+
+      if (currentDataField.length() == 0) {
+        operationInProgress = false;
+        return false;
+      }  else {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+boolean sendBLE(String command) {
+  if (connected && !operationInProgress) {
+    operationInProgress = true;
+    commandCharacteristic->setValue(command.c_str());
+    commandCharacteristic->notify();
+
+    printDebug("Sent BLE Command: " + command);
+    unsigned long startTime = millis();
+    while (operationInProgress && (startTime + 200 > millis()))
+      delay(25);
+    return !operationInProgress;
+  }
+  return false;
 }
