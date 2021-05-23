@@ -30,6 +30,6 @@ The initial connection can be lengthy sometimes, however once it is connected th
       /lastSong - hits the media previous song button on the android device
 ```
 The example sketch provided in the repo will connect to the Android app and print the current notifications present on the notification bar to the serial terminal.
-If everything's configured correctly the output should look like this: 
+If everything's configured correctly the output should look something like this for notification data: 
 
 <img src="https://github.com/Bellafaire/Android-Companion-App-For-BLE-Devices/blob/master/Images/ouputExample.png?raw=true" />
