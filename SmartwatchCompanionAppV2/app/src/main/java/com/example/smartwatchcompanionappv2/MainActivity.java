@@ -9,6 +9,8 @@ Background operation of BLE Library with Android 8 - Request for Example: https:
 
  */
 
+import static org.ligi.tracedroid.sending.TraceDroidEmailSenderKt.sendTraceDroidStackTracesIfExist;
+
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -31,6 +33,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.ligi.tracedroid.TraceDroid;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -61,6 +65,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        TraceDroid.INSTANCE.init(this); // passing Application Context
+        sendTraceDroidStackTracesIfExist("", this);
 
         //begin background scan, this uses the nordic semiconductor Android Scanner Compat Library
         BLEScanner.startScan(this.getApplicationContext());
