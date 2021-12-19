@@ -509,12 +509,12 @@ public class BLEGATT {
             for (int x = 0; x < 32; x++) {
                 Color pixel = bitmap.getColor(x, y);
                 int val = pixel.toArgb();
-                int b = ((val & 0x00FF0000) >> 19);
+                int r = ((val & 0x00FF0000) >> 19);
                 int g = ((val & 0x0000FF00) >> 10);
-                int r = ((val & 0x000000FF) >> 3);
-                int pv = 0xFFFF & ((r << 11) & 0xF800) | ((g << 5) & 0x07E0) | (b & 0x001F);
-                outputArray[a] = (byte) ((pv >> 8) & 0x00FF);
-                outputArray[a + 1] = (byte) (pv & 0x00FF);
+                int b = ((val & 0x000000FF) >> 3);
+                int pv = 0xFFFF & (((b << 11) & 0xF800) | ((g << 5) & 0x07E0) | (r & 0x001F));
+                outputArray[a + 1] = (byte) ((pv >> 8) & 0x00FF);
+                outputArray[a] = (byte) (pv & 0x00FF);
 
                 checksum += (outputArray[a] << 8) | outputArray[a + 1];
 
