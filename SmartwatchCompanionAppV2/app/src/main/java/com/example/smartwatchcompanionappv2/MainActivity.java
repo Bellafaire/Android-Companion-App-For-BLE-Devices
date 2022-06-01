@@ -101,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
         if (notificationAccessGranted) {
             notificationAccessButton.setVisibility(View.INVISIBLE);
             Log.d(TAG, "Notification Access Granted");
-        }else{
+        } else {
             Log.e(TAG, "Notification Access NOT Granted");
             notificationData = NOTIFICATION_ERROR_STRING;
         }
@@ -152,8 +152,8 @@ public class MainActivity extends AppCompatActivity {
                             requestCode);
         } else {
             Toast.makeText(reference,
-                    "Permission already granted",
-                    Toast.LENGTH_SHORT)
+                            "Permission already granted",
+                            Toast.LENGTH_SHORT)
                     .show();
         }
     }
@@ -174,13 +174,13 @@ public class MainActivity extends AppCompatActivity {
 
                     if (notificationAccessGranted) {
                         notificationAccessButton.setVisibility(View.INVISIBLE);
-                    }else{
+                    } else {
                         notificationAccessGranted = reference.isNotificationServiceRunning();
                         //notifications access has just been granted, update the notification data so that it reflects the current notifications.
                         //otherwise print info to inform the user of the issue.
-                        if(notificationAccessGranted){
+                        if (notificationAccessGranted) {
                             reference.updateNotifications();
-                        }else {
+                        } else {
                             notificationData = NOTIFICATION_ERROR_STRING;
                             notificationAccessButton.setVisibility(View.VISIBLE);
                         }
@@ -213,13 +213,15 @@ public class MainActivity extends AppCompatActivity {
     class NotificationReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.v(TAG, "onReceive method callback received " + intent.getStringExtra("notification_event"));
-            String temp = intent.getStringExtra("notification_event");
-            if (!notificationData.contains(temp)) {
-                temp = intent.getStringExtra("notification_event") + "\n" + notificationData;
-                notificationData = temp.replace("\n\n", "\n");
+            if (intent.hasExtra("notification_event")) {
+                Log.v(TAG, "onReceive method callback received " + intent.getStringExtra("notification_event"));
+                String temp = intent.getStringExtra("notification_event");
+                if (!notificationData.contains(temp)) {
+                    temp = intent.getStringExtra("notification_event") + "\n" + notificationData;
+                    notificationData = temp.replace("\n\n", "\n");
+                }
+                updateStatusText();
             }
-            updateStatusText();
         }
     }
 

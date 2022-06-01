@@ -50,6 +50,7 @@ public class BLEGATT {
     private boolean readyToSend = false;
     static private String lastConnected = "";
     boolean writeInProgress = false;
+    static boolean notificationUpdateServiceFound = false;
     int mtuSize = 16;
     public String currentUUID = MainActivity.COMMAND_UUID;
 
@@ -103,6 +104,8 @@ public class BLEGATT {
         }
         ret += "\n";
         ret += "Last Connected: " + lastConnected + "\n";
+        ret += "Device Has Notification Update Service: " + Boolean.toString(notificationUpdateServiceFound);
+        ret += "\n";
         Log.v(TAG, ret);
         return ret;
     }
@@ -240,6 +243,15 @@ public class BLEGATT {
             //log spam
             Log.i(TAG, gatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getUuid().toString());
             Log.i(TAG, "Obtained service");
+
+            //find whether we have the notification update service.
+            List<BluetoothGattService> foundServices = gatt.getServices();
+
+            for (int a = 0; a < foundServices.size(); a++)
+                if (foundServices.get(a).getUuid() == UUID.fromString(MainActivity.NOTIFICATION_UPDATE_UUID)) {
+                    notificationUpdateServiceFound = true;
+                    Log.i(TAG, "Device supports notification update service");
+                }
 
             //if any of the characteristics available are subscribeable then subscribe to them
             List<BluetoothGattCharacteristic> chars = gatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristics();
@@ -533,7 +545,7 @@ public class BLEGATT {
         outputArray[2049] = (byte) ((checksum) & 0xFF);
 
 //        str = Base64.encodeToString(outputArray,  Base64.DEFAULT);
-        str = Base64.encodeToString(outputArray, Base64.DEFAULT | Base64.NO_WRAP | Base64.NO_CLOSE |Base64.CRLF);
+        str = Base64.encodeToString(outputArray, Base64.DEFAULT | Base64.NO_WRAP | Base64.NO_CLOSE | Base64.CRLF);
 
 
         Log.d(TAG, "Image string length: " + str.length());
@@ -602,10 +614,8 @@ public class BLEGATT {
     class NotificationEventReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.v(TAG, "onReceive method callback received " + intent.getStringExtra("notification_event"));
-            if(intent.hasExtra("notification_event"))
-                if(intent.getStringExtra("notification_event").contains("onNotificationPosted"))
-                    Log.e(TAG, "Notification Posted!");
+            if (intent.hasExtra("event_type"))
+                Log.v(TAG + "_notification_event", "onReceive method callback received " + intent.getStringExtra("event_type"));
         }
     }
 
