@@ -59,6 +59,7 @@ public class BLEGATT {
 
     //receiver
     private static BLEUpdateReceiver nReceiver;
+    private static NotificationEventReceiver neReceiver;
 
     //current message
     public MessageClipper currentMessage = new MessageClipper("");
@@ -83,6 +84,12 @@ public class BLEGATT {
             //this is basically designed to crash so eh whatever
             Log.e(TAG, "Failed to register broadcast reciever in BLESend: " + e.getLocalizedMessage());
         }
+
+        //init notification receiver
+        neReceiver = new BLEGATT.NotificationEventReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(NLService.NOTIFICATION_ACTION);
+        con.registerReceiver(neReceiver, filter);
 
     }
 
@@ -589,6 +596,17 @@ public class BLEGATT {
 
 
         return bitmap;
+    }
+
+    //receives the data from the NLService and updates fields in this class.
+    class NotificationEventReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.v(TAG, "onReceive method callback received " + intent.getStringExtra("notification_event"));
+            if(intent.hasExtra("notification_event"))
+                if(intent.getStringExtra("notification_event").contains("onNotificationPosted"))
+                    Log.e(TAG, "Notification Posted!");
+        }
     }
 
 

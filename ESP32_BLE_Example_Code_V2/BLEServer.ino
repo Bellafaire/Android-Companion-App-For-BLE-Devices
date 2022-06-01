@@ -47,6 +47,8 @@ static boolean blockingCommandInProgress = false;
 static String* bleReturnString;
 #define SERVICE_UUID        "5ac9bc5e-f8ba-48d4-8908-98b80b566e49"
 #define COMMAND_UUID        "bcca872f-1a3e-4491-b8ec-bfc93c5dd91a"
+#define NOTIFICATION_UPDATE_UUID "bcca872f-1a3e-4491-b8ec-bfc93c5dd900"
+
 BLECharacteristic *commandCharacteristic;
 BLEService *pService;
 BLEServer *pServer;

@@ -1,5 +1,7 @@
 package com.example.smartwatchcompanionappv2;
 
+import static org.ligi.tracedroid.sending.TraceDroidEmailSenderKt.sendTraceDroidStackTracesIfExist;
+
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -12,6 +14,8 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+
+import org.ligi.tracedroid.TraceDroid;
 
 /* Foreground service responsible for communication to the BLE device, we keep this in the foreground
 to allow the android device to always be communicating with the smartwatch when it appears. It could probably
@@ -30,6 +34,10 @@ public class BLEService extends Service {
         super.onCreate();
         reference = this;
         Log.i(TAG, "onCreate: Called");
+
+        //init Tracedroid for problem reporting
+        TraceDroid.INSTANCE.init(this); // passing Application Context
+        sendTraceDroidStackTracesIfExist("", this);
 
         //create the notification
         createNotificationChannel();
