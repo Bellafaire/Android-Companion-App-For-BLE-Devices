@@ -18,30 +18,38 @@
   SOFTWARE.
 ******************************************************************************/
 
-//function signitures
+// function signitures
 void addData(String data);
 void initBLE();
 void startBLEAdvertising();
-boolean sendBLE(String command, String* returnString, boolean blocking);
+boolean sendBLE(String command, String *returnString, boolean blocking);
 boolean sendBLE(String command);
 
-void setup() {
+void onNotificationEvent(String event){
+  //event will have value 'posted' or 'removed' 
+  Serial.printf("Notification Event '%s'\n", event);
+}
+
+
+void setup()
+{
   Serial.begin(115200);
   Serial.println("Initializing Bluetooth");
   initBLE();
 }
 
-void loop() {
-  //available commands
-  //  /notifications - gets current android notifications as a string format "appName,Title;ExtraText,ExtraInfoText,ExtraSubText,ExtraTitle;Description;"
-  //  /calendar - returns a string of calender events for the next 24 hours in format "title;description;startDate;startTime;endTime;eventLocation;"
-  //  /time - returns a string representing the time
-  //  /isPlaying - returns "true" or "false" indicating whether spotify is playing on the android device
-  //  /currentSong - returns the current song name and artist playing on spotify as one string
-  //  /play - hits the media play button on the android device
-  //  /pause - hits the media pause button on the android device
-  //  /nextSong - hits the media next song button on the android device
-  //  /lastSong - hits the media previous song button on the android device
+void loop()
+{
+  // available commands
+  //   /notifications - gets current android notifications as a string format "appName,Title;ExtraText,ExtraInfoText,ExtraSubText,ExtraTitle;Description;"
+  //   /calendar - returns a string of calender events for the next 24 hours in format "title;description;startDate;startTime;endTime;eventLocation;"
+  //   /time - returns a string representing the time
+  //   /isPlaying - returns "true" or "false" indicating whether spotify is playing on the android device
+  //   /currentSong - returns the current song name and artist playing on spotify as one string
+  //   /play - hits the media play button on the android device
+  //   /pause - hits the media pause button on the android device
+  //   /nextSong - hits the media next song button on the android device
+  //   /lastSong - hits the media previous song button on the android device
 
   String data = "";
 
@@ -61,8 +69,9 @@ void loop() {
       which will return true if the command was successful and false if not.
   */
 
-  if (requestSuccess) {
+  if (requestSuccess)
+  {
     Serial.println(data);
   }
-  delay(1000);
+  delay(5000);
 }
