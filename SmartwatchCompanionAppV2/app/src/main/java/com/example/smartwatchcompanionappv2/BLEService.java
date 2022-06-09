@@ -37,7 +37,7 @@ public class BLEService extends Service {
 
         //init Tracedroid for problem reporting
         TraceDroid.INSTANCE.init(this); // passing Application Context
-        sendTraceDroidStackTracesIfExist("", this);
+//        sendTraceDroidStackTracesIfExist("", this);
 
         //create the notification
         createNotificationChannel();

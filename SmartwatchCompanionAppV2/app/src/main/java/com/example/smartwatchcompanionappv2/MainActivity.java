@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     //otherwise the connection cannot be established.
     public static final String SERVICE_UUID = "5ac9bc5e-f8ba-48d4-8908-98b80b566e49";
     public static final String COMMAND_UUID = "bcca872f-1a3e-4491-b8ec-bfc93c5dd91a";
-    public static final String NOTIFICATION_UPDATE_UUID = "bcca872f-1a3e-4491-b8ec-bfc93c5dd900";
+    public static final String CHARACTERISTIC_NOTIFICATION_UPDATE = "bcca872f-1a3e-4491-b8ec-bfc93c5dd901";
 
     public static final String NOTIFICATION_ERROR_STRING = "Notification access must be granted to access notification data. Please grant notification access in the app then reconnect your bluetooth device";
 

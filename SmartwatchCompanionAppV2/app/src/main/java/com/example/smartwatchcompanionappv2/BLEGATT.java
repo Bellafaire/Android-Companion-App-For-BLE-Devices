@@ -247,12 +247,6 @@ public class BLEGATT {
             //find whether we have the notification update service.
             List<BluetoothGattService> foundServices = gatt.getServices();
 
-            for (int a = 0; a < foundServices.size(); a++)
-                if (foundServices.get(a).getUuid() == UUID.fromString(MainActivity.NOTIFICATION_UPDATE_UUID)) {
-                    notificationUpdateServiceFound = true;
-                    Log.i(TAG, "Device supports notification update service");
-                }
-
             //if any of the characteristics available are subscribeable then subscribe to them
             List<BluetoothGattCharacteristic> chars = gatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristics();
 
@@ -610,12 +604,35 @@ public class BLEGATT {
         return bitmap;
     }
 
+
+    boolean transmitNewNotificationUpdate(String status) {
+        BluetoothGattCharacteristic bgc;
+        try {
+            bgc = bluetoothGatt.getService(UUID.fromString(MainActivity.SERVICE_UUID)).getCharacteristic(UUID.fromString(MainActivity.CHARACTERISTIC_NOTIFICATION_UPDATE));
+        } catch (NullPointerException e) {
+            Log.e(TAG, "notification update characteristic is null, device might not be ready yet");
+            return false;
+        }
+        if (bgc != null) {
+            bgc.setValue(status);
+            if (bluetoothGatt.writeCharacteristic(bgc)) {
+                Log.d(TAG, "updated notification status characteristic with:" + status);
+                return true;
+            }
+        } else {
+            Log.w(TAG, "Characteristic is null - device may not support notification updates");
+        }
+        return false;
+    }
+
     //receives the data from the NLService and updates fields in this class.
     class NotificationEventReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.hasExtra("event_type"))
+            if (intent.hasExtra("event_type")) {
                 Log.v(TAG + "_notification_event", "onReceive method callback received " + intent.getStringExtra("event_type"));
+                transmitNewNotificationUpdate(intent.getStringExtra("event_type"));
+            }
         }
     }
 
