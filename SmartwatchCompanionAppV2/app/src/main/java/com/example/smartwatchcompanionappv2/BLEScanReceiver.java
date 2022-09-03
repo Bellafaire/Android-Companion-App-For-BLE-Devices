@@ -58,8 +58,10 @@ public class BLEScanReceiver extends BroadcastReceiver {
                                 try {
                                     if (!BLEService.isRunning) {
 //                                        BLEScanner.stopScan(MainActivity.reference);
-                                        MainActivity.currentDevice = result.getDevice();
-                                        context.startForegroundService(new Intent(context, BLEService.class));
+                                        if (result.getDevice() != null) {
+                                            MainActivity.currentDevice = result.getDevice();
+                                            context.startForegroundService(new Intent(context, BLEService.class));
+                                        }
                                     }
                                 } catch (IllegalStateException e) {
                                     Log.e(TAG, "Could not register service");
