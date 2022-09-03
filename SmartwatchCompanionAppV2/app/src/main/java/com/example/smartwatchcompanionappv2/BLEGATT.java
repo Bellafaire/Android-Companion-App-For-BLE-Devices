@@ -515,7 +515,7 @@ public class BLEGATT {
         byte[] outputArray = new byte[size + 2];
         String str = "";
 
-        short checksum = 0;
+        byte checksum = 0;
 
         int a = 0;
         for (int y = 0; y < 32; y++) {
@@ -529,14 +529,14 @@ public class BLEGATT {
                 outputArray[a + 1] = (byte) ((pv >> 8) & 0x00FF);
                 outputArray[a] = (byte) (pv & 0x00FF);
 
-                checksum += (outputArray[a] << 8) | outputArray[a + 1];
+                checksum += outputArray[a];
+                checksum += outputArray[a + 1];
 
                 a += 2;
             }
         }
 
-        outputArray[2048] = (byte) ((checksum >> 8) & 0xFF);
-        outputArray[2049] = (byte) ((checksum) & 0xFF);
+        outputArray[2048] = (byte) (checksum);
 
 //        str = Base64.encodeToString(outputArray,  Base64.DEFAULT);
         str = Base64.encodeToString(outputArray, Base64.DEFAULT | Base64.NO_WRAP | Base64.NO_CLOSE | Base64.CRLF);
