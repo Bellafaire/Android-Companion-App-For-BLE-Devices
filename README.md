@@ -6,11 +6,15 @@ This project is intended to work alongside my ESP32 Smartwatch project but this 
 <div style="text-align:center">
 <img src="https://github.com/Bellafaire/Android-Companion-App-For-BLE-Devices/blob/master/Images/appInterface.jpg?raw=true" height="400px" />
 </div>
+
 ## Installation
 
 Sources can be compiled in android studio once cloned from this repo. 
 There is a compiled .apk file available under the "releases" tab of this repo you can use that to install the app or compile the app yourself from source. 
 Be sure to grant notification permission and check "Device Broadcast Status" setting in spotify for all features to work properly in the app. 
+
+On newer versions of android power management can kill the foreground process rendering the app inoperable. 
+To prevent this navigate to **Settings > Apps > App Management > ESP32 Smartwatch Companion App > Battery Usage** then toggle "Allow background activity". 
 
 ## Usage example
 Once the app is running on the android device an ESP32 can connect to it by matching the service and characteristic UUIDs in the example sketch. 
