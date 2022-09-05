@@ -64,8 +64,12 @@ public class BLEService extends Service {
 
         MainActivity.updateStatusText();
 
-        blegatt = new BLEGATT(this.getApplicationContext());
-        blegatt.connect(MainActivity.currentDevice);
+        try {
+            blegatt = new BLEGATT(this.getApplicationContext());
+            blegatt.connect(MainActivity.currentDevice);
+        }catch (RuntimeException e){
+            this.onDestroy();
+        }
 
         return START_STICKY;
     }
@@ -74,7 +78,7 @@ public class BLEService extends Service {
     @Override
     public void onDestroy() {
         Log.i(TAG, "Device Disconnected, BLESend service is now ending");
-
+        BLEScanner.startScan(MainActivity.reference.getApplicationContext());
         isRunning = false;
 
         super.onDestroy();
