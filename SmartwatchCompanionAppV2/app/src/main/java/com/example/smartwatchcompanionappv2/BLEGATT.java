@@ -258,10 +258,7 @@ public class BLEGATT {
             }
 
             //now that the services are discoverred lets see if we can request a larger MTU for quicker data transmission
-//            gatt.requestMtu(64);
-//            if (mtuSize < 64) {
-//                gatt.requestMtu(64);
-//            }
+            gatt.requestMtu(256);
 
         }
 

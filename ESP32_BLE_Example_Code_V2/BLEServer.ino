@@ -22,6 +22,9 @@
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
+// #include <esp_gap_ble_api.h>
+// #include <esp_gattc_api.h>
+#include <esp_gatt_common_api.h>
 
 /*******************************************************************
                               DEBUG
@@ -111,6 +114,7 @@ class notification_update_callback : public BLECharacteristicCallbacks
 void initBLE()
 {
   BLEDevice::init("ESP32 Smartwatch");
+  esp_err_t err = esp_ble_gatt_set_local_mtu(256);
   pServer = BLEDevice::createServer();
   pService = pServer->createService(SERVICE_UUID);
 
@@ -171,7 +175,7 @@ boolean sendBLE(String command, String *returnString, boolean blocking)
       currentDataField = "";
 
       unsigned long startTime = millis();
-      while (operationInProgress && (startTime + 2000 > millis()))
+      while (operationInProgress && (startTime + 8000 > millis()))
         delay(25);
 
       operationInProgress = false;
